@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PharmaChain — Phase 4: Supply Chain Actions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #03070F;
+  --bg2:       #060C18;
+  --card:      #0D1628;
+  --card2:     #111D33;
+  --border:    rgba(0,229,176,0.10);
+  --border2:   rgba(0,229,176,0.22);
+  --mint:      #00E5B0;
+  --mint-dim:  rgba(0,229,176,0.10);
+  --mint-glow: rgba(0,229,176,0.28);
+  --red:       #FF2D55;
+  --red-dim:   rgba(255,45,85,0.12);
+  --amber:     #FFB800;
+  --amber-dim: rgba(255,184,0,0.10);
+  --blue:      #3B82F6;
+  --blue-dim:  rgba(59,130,246,0.10);
+  --purple:    #A855F7;
+  --purple-dim:rgba(168,85,247,0.10);
+  --text:      #D4E8FF;
+  --text-mid:  #7A9EC0;
+  --text-dim:  #3A5570;
+  --font-d: 'Syne', sans-serif;
+  --font-m: 'DM Mono', monospace;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font-m);font-size:13px;line-height:1.6;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.35;}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── LAYOUT ── */
+.layout{display:grid;grid-template-columns:260px 1fr 300px;min-height:100vh;gap:0;}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:28px 20px;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border);}
+.logo-box{width:34px;height:34px;background:var(--mint);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 0 16px var(--mint-glow);}
+.logo-name{font-family:var(--font-d);font-size:16px;font-weight:800;color:#fff;}
+.logo-tag{font-size:9px;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase;}
+
+.tab-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);padding:10px 0 6px;margin-top:4px;}
+.tab{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:500;color:var(--text-mid);border:1px solid transparent;transition:all .2s;background:none;width:100%;text-align:left;font-family:var(--font-m);}
+.tab:hover{color:var(--text);background:rgba(255,255,255,.04);}
+.tab.active{color:var(--mint);background:var(--mint-dim);border-color:var(--border2);}
+.tab-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.tab.active .tab-icon{box-shadow:0 0 8px var(--mint-glow);}
+.tab-body{flex:1;}
+.tab-title{font-size:12px;font-weight:600;}
+.tab-sub{font-size:10px;color:var(--text-dim);margin-top:1px;}
+.tab.active .tab-sub{color:rgba(0,229,176,.6);}
+
+/* ── MAIN ── */
+.main{padding:32px;overflow-y:auto;}
+.page{display:none;animation:fadeUp .3s ease;}
+.page.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── RIGHT PANEL ── */
+.right-panel{background:var(--bg2);border-left:1px solid var(--border);padding:24px;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;}
+.rp-title{font-family:var(--font-d);font-size:13px;font-weight:700;color:#fff;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.rp-dot{width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 6px var(--mint);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.7)}}
+
+/* ── SECTION HEADING ── */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.sh-title{font-family:var(--font-d);font-size:17px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;}
+.sh-dot{width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 6px var(--mint);display:inline-block;}
+
+/* ── STEPPER ── */
+.stepper{display:flex;align-items:center;gap:0;margin-bottom:32px;}
+.step{display:flex;align-items:center;gap:10px;flex:1;}
+.step-circle{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:13px;font-weight:800;border:2px solid;flex-shrink:0;transition:all .3s;}
+.step-circle.done{background:var(--mint);border-color:var(--mint);color:#04080F;box-shadow:0 0 12px var(--mint-glow);}
+.step-circle.active{background:var(--mint-dim);border-color:var(--mint);color:var(--mint);}
+.step-circle.idle{background:transparent;border-color:var(--border2);color:var(--text-dim);}
+.step-label{font-size:11px;font-weight:600;}
+.step-label.active{color:var(--mint);}
+.step-label.idle{color:var(--text-dim);}
+.step-line{height:1px;flex:1;margin:0 8px;transition:background .3s;}
+.step-line.done{background:var(--mint);}
+.step-line.idle{background:var(--border2);}
+
+/* ── ROLE SELECTOR ── */
+.role-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px;}
+.role-card{background:var(--card);border:2px solid var(--border);border-radius:12px;padding:20px 16px;cursor:pointer;transition:all .25s;text-align:left;}
+.role-card:hover{border-color:var(--border2);transform:translateY(-2px);}
+.role-card.selected{border-color:var(--mint);background:var(--mint-dim);box-shadow:0 0 20px var(--mint-glow);}
+.rc-icon{font-size:26px;margin-bottom:10px;}
+.rc-title{font-family:var(--font-d);font-size:14px;font-weight:700;color:#fff;margin-bottom:4px;}
+.role-card.selected .rc-title{color:var(--mint);}
+.rc-desc{font-size:10px;color:var(--text-dim);line-height:1.5;}
+.role-card.selected .rc-desc{color:rgba(0,229,176,.6);}
+
+/* ── FORM ── */
+.form-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;margin-bottom:20px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.fg-full{grid-column:1/-1;}
+
+.field{display:flex;flex-direction:column;gap:6px;}
+.field label{font-size:10px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;}
+.field-required{color:var(--red);font-size:9px;margin-left:4px;}
+.field-error{color:var(--red)!important;font-size:9px!important;letter-spacing:.5px!important;}
+
+.finput,.fselect{width:100%;background:var(--bg2);border:1.5px solid var(--border);border-radius:9px;color:var(--text);font-family:var(--font-m);font-size:12px;padding:11px 14px;outline:none;transition:border-color .2s, box-shadow .2s,background .2s;appearance:none;}
+.finput:focus,.fselect:focus{border-color:var(--mint);box-shadow:0 0 0 3px var(--mint-dim);background:#070e1b;}
+.finput.error,.fselect.error{border-color:var(--red);box-shadow:0 0 0 3px var(--red-dim);animation:shake .3s ease;}
+.finput::placeholder{color:var(--text-dim);}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+
+.finput:disabled,.fselect:disabled{opacity:.4;cursor:not-allowed;}
+
+/* character counter */
+.char-counter{font-size:9px;color:var(--text-dim);text-align:right;margin-top:2px;}
+.char-counter.warn{color:var(--amber);}
+
+/* inline error message */
+.err-msg{font-size:10px;color:var(--red);margin-top:3px;display:none;align-items:center;gap:4px;}
+.err-msg.show{display:flex;}
+
+/* ── CONFIRM PANEL ── */
+.confirm-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.conf-field{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+.conf-label{font-size:9px;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px;}
+.conf-val{font-size:12px;color:var(--text);}
+.conf-field.full{grid-column:1/-1;}
+
+/* ── SUCCESS BLOCK ── */
+.success-wrap{text-align:center;padding:40px 20px;animation:fadeUp .4s ease;}
+.success-icon{width:72px;height:72px;background:var(--mint-dim);border:2px solid var(--mint);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 20px;box-shadow:0 0 32px var(--mint-glow);animation:popIn .5s cubic-bezier(.34,1.56,.64,1);}
+@keyframes popIn{from{transform:scale(0)}to{transform:scale(1)}}
+.success-title{font-family:var(--font-d);font-size:22px;font-weight:800;color:var(--mint);margin-bottom:8px;}
+.success-sub{font-size:12px;color:var(--text-mid);margin-bottom:24px;}
+
+/* New block reveal */
+.new-block{background:var(--card);border:2px solid var(--mint);border-radius:12px;padding:20px;text-align:left;box-shadow:0 0 28px var(--mint-glow);animation:blockReveal .6s cubic-bezier(.34,1.56,.64,1) .2s both;}
+@keyframes blockReveal{from{opacity:0;transform:scale(.9) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.nb-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.nb-badge{background:var(--mint);color:#04080F;font-family:var(--font-d);font-size:10px;font-weight:800;padding:3px 10px;border-radius:100px;letter-spacing:.5px;}
+.nb-index{font-size:10px;color:var(--text-dim);}
+.nb-event{font-family:var(--font-d);font-size:15px;font-weight:700;color:var(--mint);margin-bottom:6px;}
+.nb-hash{font-family:var(--font-m);font-size:9px;color:var(--text-dim);word-break:break-all;line-height:1.6;}
+.nb-hash span{color:var(--mint);}
+
+/* ── BTN ── */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:9px;border:1.5px solid;font-family:var(--font-m);font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn-primary{background:var(--mint);border-color:var(--mint);color:#04080F;font-weight:700;box-shadow:0 0 16px var(--mint-glow);}
+.btn-primary:hover{box-shadow:0 0 24px rgba(0,229,176,.45);transform:translateY(-1px);}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none;}
+.btn-ghost{background:transparent;border-color:var(--border2);color:var(--text-mid);}
+.btn-ghost:hover{color:var(--text);border-color:rgba(0,229,176,.3);background:var(--mint-dim);}
+.btn-danger{background:var(--red-dim);border-color:rgba(255,45,85,.3);color:var(--red);}
+.btn-danger:hover{background:rgba(255,45,85,.2);}
+.btn-amber{background:var(--amber-dim);border-color:rgba(255,184,0,.25);color:var(--amber);}
+
+/* ── ACTIVITY FEED ── */
+.activity-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:9px;background:var(--card);border:1px solid var(--border);margin-bottom:8px;animation:slideIn .3s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:translateX(0)}}
+.ai-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+.ai-event{font-family:var(--font-d);font-size:11px;font-weight:700;color:var(--mint);}
+.ai-meta{font-size:10px;color:var(--text-dim);}
+.ai-time{font-size:9px;color:var(--text-dim);margin-left:auto;flex-shrink:0;}
+
+/* ── CHAIN STATUS MINI ── */
+.chain-mini{padding:14px 16px;border-radius:10px;border:1px solid var(--border2);background:var(--mint-dim);margin-bottom:16px;}
+.cm-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-bottom:5px;}
+.cm-count{font-family:var(--font-d);font-size:26px;font-weight:800;color:var(--mint);line-height:1;}
+.cm-sub{font-size:10px;color:rgba(0,229,176,.6);margin-top:3px;}
+
+/* ── PROGRESS BAR ── */
+.progress-bar{height:3px;background:var(--border);border-radius:2px;margin-bottom:28px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--mint);border-radius:2px;transition:width .4s cubic-bezier(.4,0,.2,1);box-shadow:0 0 8px var(--mint-glow);}
+
+/* ── FLAG FORM specific ── */
+.severity-row{display:flex;gap:10px;margin-top:4px;}
+.sev-btn{flex:1;padding:10px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg2);cursor:pointer;text-align:center;transition:all .2s;font-family:var(--font-m);font-size:11px;color:var(--text-dim);}
+.sev-btn:hover{border-color:var(--border2);}
+.sev-btn.sel-low{border-color:var(--mint);background:var(--mint-dim);color:var(--mint);}
+.sev-btn.sel-med{border-color:var(--amber);background:var(--amber-dim);color:var(--amber);}
+.sev-btn.sel-high{border-color:var(--red);background:var(--red-dim);color:var(--red);}
+
+/* ── BATCH LOOKUP ── */
+.batch-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:100px;background:var(--mint-dim);border:1px solid var(--border2);color:var(--mint);font-size:10px;font-weight:600;margin:4px;cursor:pointer;transition:all .2s;}
+.batch-pill:hover{background:rgba(0,229,176,.2);}
+
+/* ── TOOLTIPS / HINTS ── */
+.hint{font-size:10px;color:var(--text-dim);margin-top:4px;display:flex;align-items:center;gap:4px;}
+
+/* LOADING SPINNER */
+.spinner{width:14px;height:14px;border:2px solid rgba(4,8,15,.4);border-top-color:#04080F;border-radius:50%;animation:spin .6s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* responsive */
+@media(max-width:1100px){.layout{grid-template-columns:220px 1fr}.right-panel{display:none}}
+@media(max-width:750px){.layout{grid-template-columns:1fr}.sidebar{display:none}.form-grid{grid-template-columns:1fr}.role-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<!-- ══ SIDEBAR ══ -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-box">💊</div>
+    <div>
+      <div class="logo-name">PharmaChain</div>
+      <div class="logo-tag">Supply Chain Actions</div>
+    </div>
+  </div>
+
+  <div class="tab-label">Drug Actions</div>
+
+  <button class="tab active" onclick="showForm('batch', this)">
+    <div class="tab-icon" style="background:var(--mint-dim)">🏭</div>
+    <div class="tab-body">
+      <div class="tab-title">Register Batch</div>
+      <div class="tab-sub">Manufacturer → blockchain</div>
+    </div>
+  </button>
+
+  <button class="tab" onclick="showForm('transfer', this)">
+    <div class="tab-icon" style="background:var(--amber-dim)">🚚</div>
+    <div class="tab-body">
+      <div class="tab-title">Log Transfer</div>
+      <div class="tab-sub">Ship to next actor</div>
+    </div>
+  </button>
+
+  <button class="tab" onclick="showForm('dispense', this)">
+    <div class="tab-icon" style="background:var(--blue-dim)">🏥</div>
+    <div class="tab-body">
+      <div class="tab-title">Dispense to Patient</div>
+      <div class="tab-sub">Pharmacy → patient</div>
+    </div>
+  </button>
+
+  <button class="tab" onclick="showForm('flag', this)">
+    <div class="tab-icon" style="background:var(--red-dim)">🚨</div>
+    <div class="tab-body">
+      <div class="tab-title">Flag Suspicious</div>
+      <div class="tab-sub">Report counterfeit</div>
+    </div>
+  </button>
+
+  <div class="tab-label" style="margin-top:8px">Quick Batches</div>
+  <div id="quickBatches" style="padding:0 4px">
+    <div class="batch-pill" onclick="fillBatch('B001')">💊 B001 — Paracetamol</div>
+    <div class="batch-pill" onclick="fillBatch('B002')">💊 B002 — Amoxicillin</div>
+    <div class="batch-pill" onclick="fillBatch('B003')">💊 B003 — Metformin</div>
+  </div>
+</aside>
+
+<!-- ══ MAIN ══ -->
+<main class="main">
+
+  <!-- ─── BATCH FORM ─── -->
+  <div class="page active" id="form-batch">
+
+    <!-- Stepper -->
+    <div class="stepper" id="batch-stepper">
+      <div class="step">
+        <div class="step-circle active" id="bs-c1">1</div>
+        <div class="step-label active" id="bs-l1">Role</div>
+      </div>
+      <div class="step-line idle" id="bs-line1"></div>
+      <div class="step">
+        <div class="step-circle idle" id="bs-c2">2</div>
+        <div class="step-label idle" id="bs-l2">Details</div>
+      </div>
+      <div class="step-line idle" id="bs-line2"></div>
+      <div class="step">
+        <div class="step-circle idle" id="bs-c3">3</div>
+        <div class="step-label idle" id="bs-l3">Confirm</div>
+      </div>
+    </div>
+
+    <div class="progress-bar"><div class="progress-fill" id="batch-progress" style="width:33%"></div></div>
+
+    <!-- Step 1: Role Selection -->
+    <div id="batch-step1">
+      <div class="sh">
+        <div class="sh-title"><span class="sh-dot"></span> Who are you?</div>
+      </div>
+      <div class="role-grid">
+        <div class="role-card" onclick="selectRole('batch','manufacturer',this)">
+          <div class="rc-icon">🏭</div>
+          <div class="rc-title">Manufacturer</div>
+          <div class="rc-desc">Creating a new drug batch at the production facility</div>
+        </div>
+        <div class="role-card" onclick="selectRole('batch','lab',this)">
+          <div class="rc-icon">🔬</div>
+          <div class="rc-title">QC Laboratory</div>
+          <div class="rc-desc">Registering a batch after quality control testing</div>
+        </div>
+        <div class="role-card" onclick="selectRole('batch','govt',this)">
+          <div class="rc-icon">🏛️</div>
+          <div class="rc-title">Govt. Regulator</div>
+          <div class="rc-desc">CDSCO / FDA — registering a certified batch</div>
+        </div>
+        <div class="role-card" onclick="selectRole('batch','partner',this)">
+          <div class="rc-icon">🤝</div>
+          <div class="rc-title">Contract Mfg.</div>
+          <div class="rc-desc">Third-party manufacturer producing on behalf of a brand</div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end">
+        <button class="btn btn-primary" id="batch-next1" onclick="batchGoStep(2)" disabled>Next: Batch Details →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Form -->
+    <div id="batch-step2" style="display:none">
+      <div class="sh">
+        <div class="sh-title"><span class="sh-dot"></span> 🏭 Register Drug Batch</div>
+        <button class="btn btn-ghost" onclick="batchGoStep(1)" style="font-size:11px">← Back</button>
+      </div>
+      <div class="form-wrap">
+        <div class="form-grid">
+
+          <div class="field">
+            <label>Batch ID <span class="field-required">*</span>
+              <span class="field-error" id="err-bid" style="display:none">⚠ required</span>
+            </label>
+            <input class="finput" id="b-bid" placeholder="e.g. B010" oninput="validate('b-bid','err-bid')" />
+            <div class="hint">💡 Use a unique ID — once on chain, it cannot be reused</div>
+          </div>
+
+          <div class="field">
+            <label>Drug Name <span class="field-required">*</span>
+              <span class="field-error" id="err-bdn" style="display:none">⚠ required</span>
+            </label>
+            <input class="finput" id="b-drug" placeholder="e.g. Paracetamol 500mg" oninput="validate('b-drug','err-bdn')" />
+          </div>
+
+          <div class="field">
+            <label>Manufacturer <span class="field-required">*</span>
+              <span class="field-error" id="err-bmfg" style="display:none">⚠ required</span>
+            </label>
+            <input class="finput" id="b-mfg" placeholder="e.g. Sun Pharma Ltd." oninput="validate('b-mfg','err-bmfg')" />
+          </div>
+
+          <div class="field">
+            <label>Quantity (units) <span class="field-required">*</span>
+              <span class="field-error" id="err-bqty" style="display:none">⚠ must be > 0</span>
+            </label>
+            <input class="finput" id="b-qty" type="number" min="1" placeholder="e.g. 5000" oninput="validateQty('b-qty','err-bqty')" />
+          </div>
+
+          <div class="field">
+            <label>Manufacture Date <span class="field-required">*</span>
+              <span class="field-error" id="err-bmfd" style="display:none">⚠ required</span>
+            </label>
+            <input class="finput" id="b-mfd" type="date" oninput="validate('b-mfd','err-bmfd')" />
+          </div>
+
+          <div class="field">
+            <label>Expiry Date <span class="field-required">*</span>
+              <span class="field-error" id="err-bexp" style="display:none">⚠ must be after mfg date</span>
+            </label>
+            <input class="finput" id="b-exp" type="date" oninput="validateExpiry()" />
+          </div>
+
+          <div class="field fg-full">
+            <label>Manufacturing Location</label>
+            <input class="finput" id="b-loc" placeholder="e.g. Mumbai, Maharashtra, India" />
+          </div>
+
+          <div class="field fg-full">
+            <label>Drug Classification</label>
+            <select class="fselect" id="b-class">
+              <option value="">— Select type (optional) —</option>
+              <option>Analgesic / Antipyretic</option>
+              <option>Antibiotic</option>
+              <option>Antidiabetic</option>
+              <option>Antihypertensive</option>
+              <option>Antihistamine</option>
+              <option>Antiviral</option>
+              <option>Vaccine</option>
+              <option>Nutritional Supplement</option>
+              <option>Other</option>
+            </select>
+          </div>
+
+          <div class="field fg-full">
+            <label>Batch Notes <span id="b-notes-count" class="char-counter">0/200</span></label>
+            <input class="finput" id="b-notes" placeholder="Optional: certifications, special storage requirements, lot details…" maxlength="200"
+              oninput="countChars('b-notes','b-notes-count',200)" />
+          </div>
+
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px">
+        <button class="btn btn-ghost" onclick="clearBatchForm()">Clear</button>
+        <button class="btn btn-primary" onclick="batchGoStep(3)">Review & Confirm →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Confirm -->
+    <div id="batch-step3" style="display:none">
+      <div class="sh">
+        <div class="sh-title"><span class="sh-dot"></span> Confirm Registration</div>
+        <button class="btn btn-ghost" onclick="batchGoStep(2)" style="font-size:11px">← Edit</button>
+      </div>
+      <div class="form-wrap">
+        <div style="background:var(--amber-dim);border:1px solid rgba(255,184,0,.2);border-radius:9px;padding:12px 16px;margin-bottom:20px;font-size:11px;color:var(--amber);display:flex;gap:10px;align-items:center;">
+          <span style="font-size:16px">⚠️</span>
+          <span>Once registered on the blockchain, this entry is <strong>permanent and immutable</strong>. Verify all details carefully.</span>
+        </div>
+        <div class="confirm-grid" id="batch-confirm-grid"></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px">
+        <button class="btn btn-ghost" onclick="batchGoStep(2)">← Edit</button>
+        <button class="btn btn-primary" id="batch-submit-btn" onclick="submitBatch()">
+          ⛓ Register on Blockchain
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 4: Success -->
+    <div id="batch-step4" style="display:none">
+      <div class="success-wrap">
+        <div class="success-icon">✅</div>
+        <div class="success-title">Batch Registered!</div>
+        <div class="success-sub">The drug batch has been permanently recorded on the blockchain.</div>
+        <div class="new-block" id="batch-success-block"></div>
+        <div style="display:flex;justify-content:center;gap:12px;margin-top:24px">
+          <button class="btn btn-ghost" onclick="batchGoStep(1);clearBatchForm()">Register Another</button>
+          <button class="btn btn-primary" onclick="showForm('transfer',document.querySelector('[onclick*=transfer]'))">Log a Transfer →</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /form-batch -->
+
+
+  <!-- ─── TRANSFER FORM ─── -->
+  <div class="page" id="form-transfer">
+
+    <div class="stepper">
+      <div class="step"><div class="step-circle active" id="ts-c1">1</div><div class="step-label active" id="ts-l1">Actor</div></div>
+      <div class="step-line idle" id="ts-line1"></div>
+      <div class="step"><div class="step-circle idle" id="ts-c2">2</div><div class="step-label idle" id="ts-l2">Shipment</div></div>
+      <div class="step-line idle" id="ts-line2"></div>
+      <div class="step"><div class="step-circle idle" id="ts-c3">3</div><div class="step-label idle" id="ts-l3">Confirm</div></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="transfer-progress" style="width:33%"></div></div>
+
+    <!-- Step 1: role -->
+    <div id="transfer-step1">
+      <div class="sh"><div class="sh-title"><span class="sh-dot"></span> Who is sending this shipment?</div></div>
+      <div class="role-grid">
+        <div class="role-card" onclick="selectRole('transfer','manufacturer',this)">
+          <div class="rc-icon">🏭</div>
+          <div class="rc-title">Manufacturer</div>
+          <div class="rc-desc">Shipping from factory to distributor</div>
+        </div>
+        <div class="role-card" onclick="selectRole('transfer','distributor',this)">
+          <div class="rc-icon">🚚</div>
+          <div class="rc-title">Distributor</div>
+          <div class="rc-desc">Moving stock to regional warehouses or pharmacies</div>
+        </div>
+        <div class="role-card" onclick="selectRole('transfer','wholesaler',this)">
+          <div class="rc-icon">🏗️</div>
+          <div class="rc-title">Wholesaler</div>
+          <div class="rc-desc">C&F agent redistributing to sub-stockists</div>
+        </div>
+        <div class="role-card" onclick="selectRole('transfer','hospital',this)">
+          <div class="rc-icon">🏥</div>
+          <div class="rc-title">Hospital / Pharmacy</div>
+          <div class="rc-desc">Internal transfer between departments or branches</div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end">
+        <button class="btn btn-primary" id="transfer-next1" onclick="transferGoStep(2)" disabled>Next: Shipment Details →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: form -->
+    <div id="transfer-step2" style="display:none">
+      <div class="sh">
+        <div class="sh-title"><span class="sh-dot"></span> 🚚 Shipment Details</div>
+        <button class="btn btn-ghost" onclick="transferGoStep(1)" style="font-size:11px">← Back</button>
+      </div>
+      <div class="form-wrap">
+        <div class="form-grid">
+          <div class="field">
+            <label>Batch ID <span class="field-required">*</span>
+              <span class="field-error" id="err-tbid" style="display:none">⚠ required</span>
+            </label>
+            <input class="finput" id="t-bid" placeholder="e.g. B001" oninput="validate('t-bid','err-tbid')" />
+          </div>
+          <div class="field">
+            <label>Drug Name <span class="field-required">*</span>
+              <span class="field-error" id="err-tdn" style="display:none">⚠ required</span>
+            </label>
+            <input class="finput" id="t-drug" placeholder="e.g. Paracetamol 500mg" oninput="validate('t-drug','err-tdn')" />
+          </div>
+          <div class="field">
+            <label>Sending Party <span class="field-required">*</span></label>
+            <input class="finput" id="t-from" placeholder="e.g. Sun Pharma Ltd." />
+          </div>
+          <div class="field">
+            <label>From Location <span class="field-required">*</span></label>
+            <input class="finput" id="t-fromloc" placeholder="e.g. Mumbai, India" />
+          </div>
+          <div class="field">
+            <label>Receiving Party <span class="field-required">*</span>
+              <span class="field-error" id="err-tto" style="display:none">⚠ required</span>
+            </label>
+            <input class="finput" id="t-to" placeholder="e.g. MedDistrib Pvt. Ltd." oninput="validate('t-to','err-tto')" />
+          </div>
+          <div class="field">
+            <label>To Location <span class="field-required">*</span></label>
+            <input class="finput" id="t-toloc" placeholder="e.g. Pune, India" />
+          </div>
+          <div class="field">
+            <label>Quantity Transferred <span class="field-required">*</span>
+              <span class="field-error" id="err-tqty" style="display:none">⚠ must be > 0</span>
+            </label>
+            <input class="finput" id="t-qty" type="number" min="1" placeholder="e.g. 5000" oninput="validateQty('t-qty','err-tqty')" />
+          </div>
+          <div class="field">
+            <label>Transport Mode</label>
+            <select class="fselect" id="t-mode">
+              <option value="">— Select (optional) —</option>
+              <option>Road (Refrigerated Truck)</option>
+              <option>Road (Standard Truck)</option>
+              <option>Rail</option>
+              <option>Air Freight</option>
+              <option>Sea Freight</option>
+              <option>Courier</option>
+            </select>
+          </div>
+          <div class="field fg-full">
+            <label>Shipment Notes <span id="t-notes-count" class="char-counter">0/200</span></label>
+            <input class="finput" id="t-notes" placeholder="e.g. Cold-chain maintained throughout, sealed with tamper-evident tape…" maxlength="200"
+              oninput="countChars('t-notes','t-notes-count',200)" />
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px">
+        <button class="btn btn-ghost" onclick="clearTransferForm()">Clear</button>
+        <button class="btn btn-primary" onclick="transferGoStep(3)">Review & Confirm →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: confirm -->
+    <div id="transfer-step3" style="display:none">
+      <div class="sh">
+        <div class="sh-title"><span class="sh-dot"></span> Confirm Transfer</div>
+        <button class="btn btn-ghost" onclick="transferGoStep(2)" style="font-size:11px">← Edit</button>
+      </div>
+      <div class="form-wrap">
+        <div style="background:var(--amber-dim);border:1px solid rgba(255,184,0,.2);border-radius:9px;padding:12px 16px;margin-bottom:20px;font-size:11px;color:var(--amber);display:flex;gap:10px;align-items:center;">
+          <span style="font-size:16px">⚠️</span>
+          <span>Transfer records are <strong>immutable once written</strong>. Confirm all parties and quantities are correct.</span>
+        </div>
+        <div class="confirm-grid" id="transfer-confirm-grid"></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px">
+        <button class="btn btn-ghost" onclick="transferGoStep(2)">← Edit</button>
+        <button class="btn btn-primary" id="transfer-submit-btn" onclick="submitTransfer()">⛓ Log Transfer</button>
+      </div>
+    </div>
+
+    <!-- Step 4: success -->
+    <div id="transfer-step4" style="display:none">
+      <div class="success-wrap">
+        <div class="success-icon">🚚</div>
+        <div class="success-title">Transfer Logged!</div>
+        <div class="success-sub" id="transfer-success-sub"></div>
+        <div class="new-block" id="transfer-success-block"></div>
+        <div style="display:flex;justify-content:center;gap:12px;margin-top:24px">
+          <button class="btn btn-ghost" onclick="transferGoStep(1);clearTransferForm()">Log Another</button>
+          <button class="btn btn-primary" onclick="showForm('dispense',document.querySelector('[onclick*=dispense]'))">Dispense to Patient →</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /form-transfer -->
+
+
+  <!-- ─── DISPENSE FORM ─── -->
+  <div class="page" id="form-dispense">
+    <div class="sh" style="margin-bottom:24px">
+      <div class="sh-title"><span class="sh-dot"></span> 🏥 Dispense Drug to Patient</div>
+    </div>
+
+    <div class="form-wrap">
+      <div style="background:var(--blue-dim);border:1px solid rgba(59,130,246,.2);border-radius:9px;padding:12px 16px;margin-bottom:20px;font-size:11px;color:#93C5FD;display:flex;gap:10px;">
+        <span style="font-size:16px">ℹ️</span>
+        <span>Patient ID is <strong>anonymized</strong> — never store real names. Use hospital patient reference codes only.</span>
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label>Batch ID <span class="field-required">*</span>
+            <span class="field-error" id="err-dbid" style="display:none">⚠ required</span>
+          </label>
+          <input class="finput" id="d-bid" placeholder="e.g. B001" oninput="validate('d-bid','err-dbid')" />
+        </div>
+        <div class="field">
+          <label>Drug Name <span class="field-required">*</span></label>
+          <input class="finput" id="d-drug" placeholder="e.g. Paracetamol 500mg" />
+        </div>
+        <div class="field fg-full">
+          <label>Pharmacy / Hospital <span class="field-required">*</span>
+            <span class="field-error" id="err-dph" style="display:none">⚠ required</span>
+          </label>
+          <input class="finput" id="d-pharmacy" placeholder="e.g. HealthPlus Pharmacy, Koregaon Park, Pune" oninput="validate('d-pharmacy','err-dph')" />
+        </div>
+        <div class="field">
+          <label>Patient Reference ID <span class="field-required">*</span>
+            <span class="field-error" id="err-dpid" style="display:none">⚠ required — use anonymized ID</span>
+          </label>
+          <input class="finput" id="d-patient" placeholder="e.g. PAT-7823 (no real names)" oninput="validate('d-patient','err-dpid')" />
+          <div class="hint">🔒 Anonymized ID only — no personal data on chain</div>
+        </div>
+        <div class="field">
+          <label>Quantity Dispensed <span class="field-required">*</span>
+            <span class="field-error" id="err-dqty" style="display:none">⚠ must be > 0</span>
+          </label>
+          <input class="finput" id="d-qty" type="number" min="1" placeholder="e.g. 30 tablets" oninput="validateQty('d-qty','err-dqty')" />
+        </div>
+        <div class="field">
+          <label>Prescription ID</label>
+          <input class="finput" id="d-rx" placeholder="e.g. RX-2025-9912" />
+        </div>
+        <div class="field">
+          <label>Dosage Instructions</label>
+          <input class="finput" id="d-dosage" placeholder="e.g. 500mg twice daily after meals" />
+        </div>
+        <div class="field">
+          <label>Dispensing Pharmacist</label>
+          <input class="finput" id="d-pharmacist" placeholder="e.g. Regd. Pharmacist ID: MH-7842" />
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:10px">
+      <button class="btn btn-ghost" onclick="clearDispenseForm()">Clear</button>
+      <button class="btn btn-primary" onclick="submitDispense()">⛓ Record Dispensing</button>
+    </div>
+
+    <!-- Success state -->
+    <div id="dispense-success" style="display:none;margin-top:24px">
+      <div class="success-wrap" style="padding:28px 0">
+        <div class="success-icon">🏥</div>
+        <div class="success-title">Dispensing Recorded!</div>
+        <div class="success-sub">Patient received medicine — final supply chain step complete.</div>
+        <div class="new-block" id="dispense-success-block" style="margin-top:16px"></div>
+        <div style="margin-top:20px">
+          <button class="btn btn-ghost" onclick="document.getElementById('dispense-success').style.display='none';clearDispenseForm()">Record Another</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /form-dispense -->
+
+
+  <!-- ─── FLAG FORM ─── -->
+  <div class="page" id="form-flag">
+    <div class="sh" style="margin-bottom:24px">
+      <div class="sh-title"><span class="sh-dot"></span> 🚨 Flag Suspicious Batch</div>
+    </div>
+
+    <div class="form-wrap">
+      <div style="background:var(--red-dim);border:1px solid rgba(255,45,85,.25);border-radius:9px;padding:14px 16px;margin-bottom:24px;">
+        <div style="font-family:var(--font-d);font-size:13px;font-weight:700;color:var(--red);margin-bottom:4px;">⚠ Counterfeit Alert System</div>
+        <div style="font-size:11px;color:var(--text-mid);line-height:1.7">
+          Flagging a batch is <strong>permanent and visible to all chain participants</strong>. Use this only for confirmed or strongly suspected counterfeit/tampered medicines. This record cannot be removed — it will appear in all future provenance checks for this batch.
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label>Batch ID <span class="field-required">*</span>
+            <span class="field-error" id="err-fbid" style="display:none">⚠ required</span>
+          </label>
+          <input class="finput" id="f-bid" placeholder="e.g. B002" oninput="validate('f-bid','err-fbid')" />
+        </div>
+        <div class="field">
+          <label>Drug Name <span class="field-required">*</span></label>
+          <input class="finput" id="f-drug" placeholder="e.g. Amoxicillin 250mg" />
+        </div>
+        <div class="field fg-full">
+          <label>Flagged By (Organization) <span class="field-required">*</span>
+            <span class="field-error" id="err-fby" style="display:none">⚠ required</span>
+          </label>
+          <input class="finput" id="f-by" placeholder="e.g. Apollo Hospital, Chennai — Lab Dept." oninput="validate('f-by','err-fby')" />
+        </div>
+
+        <div class="field fg-full">
+          <label>Severity Level <span class="field-required">*</span></label>
+          <div class="severity-row">
+            <button class="sev-btn" onclick="setSeverity('low',this)">🟡 Low<br><span style="font-size:9px;opacity:.7">Suspicious packaging only</span></button>
+            <button class="sev-btn" onclick="setSeverity('med',this)">🟠 Medium<br><span style="font-size:9px;opacity:.7">Lab test inconsistency</span></button>
+            <button class="sev-btn" onclick="setSeverity('high',this)">🔴 High<br><span style="font-size:9px;opacity:.7">Confirmed counterfeit / harm</span></button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Issue Category <span class="field-required">*</span></label>
+          <select class="fselect" id="f-category">
+            <option value="">— Select issue type —</option>
+            <option>Packaging tampered / seal broken</option>
+            <option>Failed quality / purity test</option>
+            <option>Wrong active ingredient</option>
+            <option>Incorrect dosage amount</option>
+            <option>Expired medicine relabeled</option>
+            <option>No batch record on blockchain</option>
+            <option>Chain of custody broken</option>
+            <option>Patient adverse reaction reported</option>
+            <option>Other (describe below)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Date Discovered</label>
+          <input class="finput" id="f-date" type="date" />
+        </div>
+
+        <div class="field fg-full">
+          <label>Detailed Reason <span class="field-required">*</span>
+            <span id="f-reason-count" class="char-counter">0/500</span>
+            <span class="field-error" id="err-freason" style="display:none">⚠ required — describe the issue</span>
+          </label>
+          <textarea class="finput" id="f-reason" rows="4" placeholder="Describe in detail what you observed, test results, patient symptoms, evidence of tampering…" maxlength="500"
+            oninput="countChars('f-reason','f-reason-count',500);validate('f-reason','err-freason')"
+            style="resize:vertical;min-height:90px"></textarea>
+        </div>
+
+        <div class="field fg-full">
+          <label>Reference / Report ID</label>
+          <input class="finput" id="f-ref" placeholder="e.g. Apollo Lab Report #LB-2025-0042" />
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:10px">
+      <button class="btn btn-ghost" onclick="clearFlagForm()">Clear</button>
+      <button class="btn btn-danger" onclick="submitFlag()" style="font-weight:700">
+        🚨 Submit Alert to Blockchain
+      </button>
+    </div>
+
+    <!-- Success state -->
+    <div id="flag-success" style="display:none;margin-top:24px">
+      <div class="success-wrap" style="padding:28px 0">
+        <div class="success-icon" style="background:var(--red-dim);border-color:var(--red);box-shadow:0 0 32px var(--red-glow)">🚨</div>
+        <div class="success-title" style="color:var(--red)">Alert Recorded on Chain</div>
+        <div class="success-sub">All supply chain participants can now see this flag when verifying the batch.</div>
+        <div class="new-block" id="flag-success-block" style="margin-top:16px;border-color:var(--red);box-shadow:0 0 28px var(--red-glow)"></div>
+        <div style="margin-top:20px">
+          <button class="btn btn-ghost" onclick="document.getElementById('flag-success').style.display='none';clearFlagForm()">Report Another</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /form-flag -->
+
+</main>
+
+<!-- ══ RIGHT PANEL ══ -->
+<aside class="right-panel">
+
+  <div class="chain-mini">
+    <div class="cm-label">Chain Height</div>
+    <div class="cm-count" id="rp-block-count">7</div>
+    <div class="cm-sub">blocks on chain</div>
+  </div>
+
+  <div>
+    <div class="rp-title"><span class="rp-dot"></span> Recent Activity</div>
+    <div id="activity-feed">
+      <div class="activity-item">
+        <div class="ai-dot" style="background:var(--mint)"></div>
+        <div>
+          <div class="ai-event">BATCH_CREATED</div>
+          <div class="ai-meta">Metformin 1000mg · B003</div>
+        </div>
+        <div class="ai-time">just now</div>
+      </div>
+      <div class="activity-item">
+        <div class="ai-dot" style="background:var(--amber)"></div>
+        <div>
+          <div class="ai-event" style="color:var(--amber)">TRANSFERRED</div>
+          <div class="ai-meta">Amoxicillin 250mg · B002</div>
+        </div>
+        <div class="ai-time">2m ago</div>
+      </div>
+      <div class="activity-item">
+        <div class="ai-dot" style="background:var(--blue)"></div>
+        <div>
+          <div class="ai-event" style="color:var(--blue)">DISPENSED</div>
+          <div class="ai-meta">Paracetamol 500mg · B001</div>
+        </div>
+        <div class="ai-time">5m ago</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="border-top:1px solid var(--border);padding-top:16px">
+    <div class="rp-title">Active Batches</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+      <div class="batch-pill" onclick="fillBatch('B001')">B001</div>
+      <div class="batch-pill" onclick="fillBatch('B002')">B002</div>
+      <div class="batch-pill" onclick="fillBatch('B003')">B003</div>
+    </div>
+    <div style="font-size:10px;color:var(--text-dim);margin-top:8px">Click to pre-fill batch ID</div>
+  </div>
+
+  <div style="border-top:1px solid var(--border);padding-top:16px">
+    <div class="rp-title">Validation Rules</div>
+    <div style="font-size:10px;color:var(--text-dim);line-height:1.8">
+      <div>• Batch ID must be unique</div>
+      <div>• Expiry must be after manufacture</div>
+      <div>• Quantity must be positive</div>
+      <div>• Patient IDs must be anonymized</div>
+      <div>• All flags are permanent</div>
+    </div>
+  </div>
+
+</aside>
+
+</div>
+
+<!-- ══ TOAST ══ -->
+<div id="toast" style="position:fixed;bottom:28px;right:28px;background:var(--card);border-radius:10px;padding:14px 20px;display:flex;align-items:center;gap:10px;font-size:12px;z-index:1000;transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);pointer-events:none;">
+  <span id="toast-icon" style="font-size:16px">✅</span>
+  <div>
+    <div id="toast-title" style="font-family:var(--font-d);font-size:13px;font-weight:700"></div>
+    <div id="toast-msg" style="font-size:11px;color:var(--text-mid)"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════
+let blockCount = 7
+let selectedRole = { batch: null, transfer: null }
+let severity = null
+let activityItems = [
+  { event:'BATCH_CREATED', color:'var(--mint)',  label:'Metformin 1000mg',   batch:'B003', time:'just now' },
+  { event:'TRANSFERRED',   color:'var(--amber)', label:'Amoxicillin 250mg',  batch:'B002', time:'2m ago' },
+  { event:'DISPENSED',     color:'var(--blue)',  label:'Paracetamol 500mg',  batch:'B001', time:'5m ago' },
+]
+
+// ══════════════════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════════════════
+function showForm(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+  document.getElementById('form-' + id).classList.add('active')
+  if (btn) btn.classList.add('active')
+}
+
+// ══════════════════════════════════════════════════════════
+//  VALIDATION HELPERS
+// ══════════════════════════════════════════════════════════
+function validate(inputId, errId) {
+  const el = document.getElementById(inputId)
+  const err = document.getElementById(errId)
+  const ok = el.value.trim() !== ''
+  el.classList.toggle('error', !ok)
+  if (err) err.style.display = ok ? 'none' : 'inline'
+  return ok
+}
+
+function validateQty(inputId, errId) {
+  const el = document.getElementById(inputId)
+  const err = document.getElementById(errId)
+  const ok = el.value && parseInt(el.value) > 0
+  el.classList.toggle('error', !ok)
+  if (err) err.style.display = ok ? 'none' : 'inline'
+  return ok
+}
+
+function validateExpiry() {
+  const mfd = document.getElementById('b-mfd').value
+  const exp = document.getElementById('b-exp').value
+  const err = document.getElementById('err-bexp')
+  const ok  = !mfd || !exp || exp > mfd
+  document.getElementById('b-exp').classList.toggle('error', !ok)
+  if (err) err.style.display = ok ? 'none' : 'inline'
+  return ok
+}
+
+function countChars(inputId, counterId, max) {
+  const el  = document.getElementById(inputId)
+  const cnt = document.getElementById(counterId)
+  const n   = el.value.length
+  cnt.textContent = `${n}/${max}`
+  cnt.className = 'char-counter' + (n > max * 0.85 ? ' warn' : '')
+}
+
+// ══════════════════════════════════════════════════════════
+//  ROLE SELECTION
+// ══════════════════════════════════════════════════════════
+function selectRole(form, role, card) {
+  selectedRole[form] = role
+  card.closest('.role-grid').querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'))
+  card.classList.add('selected')
+  document.getElementById(`${form}-next1`).disabled = false
+}
+
+// ══════════════════════════════════════════════════════════
+//  BATCH WIZARD
+// ══════════════════════════════════════════════════════════
+function batchGoStep(n) {
+  if (n === 2) {
+    // validate step 1
+    if (!selectedRole.batch) { toast('⚠️','Select a Role','Please select your role before proceeding.','var(--amber)'); return }
+  }
+  if (n === 3) {
+    // validate step 2 fields
+    const checks = [
+      validate('b-bid','err-bid'), validate('b-drug','err-bdn'),
+      validate('b-mfg','err-bmfg'), validateQty('b-qty','err-bqty'),
+      validate('b-mfd','err-bmfd'), validate('b-exp','err-bexp'),
+      validateExpiry()
+    ]
+    if (checks.some(c => !c)) { toast('⚠️','Missing Fields','Please fix highlighted errors.','var(--amber)'); return }
+    buildConfirm('batch-confirm-grid', {
+      'Role'             : selectedRole.batch,
+      'Batch ID'         : v('b-bid'),
+      'Drug Name'        : v('b-drug'),
+      'Manufacturer'     : v('b-mfg'),
+      'Quantity'         : `${v('b-qty')} units`,
+      'Manufacture Date' : v('b-mfd'),
+      'Expiry Date'      : v('b-exp'),
+      'Location'         : v('b-loc') || 'Not specified',
+      'Classification'   : v('b-class') || 'Not specified',
+      'Notes'            : v('b-notes') || '—',
+    })
+  }
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById(`batch-step${i}`)
+    if (el) el.style.display = i === n ? 'block' : 'none'
+  }
+  setStepperState('bs', n)
+  const pct = { 1:33, 2:66, 3:90, 4:100 }[n]
+  document.getElementById('batch-progress').style.width = pct + '%'
+}
+
+function transferGoStep(n) {
+  if (n === 2 && !selectedRole.transfer) { toast('⚠️','Select a Role','Please select who is sending.','var(--amber)'); return }
+  if (n === 3) {
+    const checks = [
+      validate('t-bid','err-tbid'), validate('t-drug','err-tdn'),
+      validate('t-to','err-tto'), validateQty('t-qty','err-tqty')
+    ]
+    if (checks.some(c => !c)) { toast('⚠️','Missing Fields','Please fix highlighted errors.','var(--amber)'); return }
+    buildConfirm('transfer-confirm-grid', {
+      'Sender Role'    : selectedRole.transfer,
+      'Batch ID'       : v('t-bid'),
+      'Drug Name'      : v('t-drug'),
+      'Sending Party'  : v('t-from'),
+      'From'           : v('t-fromloc'),
+      'Receiving Party': v('t-to'),
+      'To'             : v('t-toloc'),
+      'Quantity'       : `${v('t-qty')} units`,
+      'Transport'      : v('t-mode') || 'Not specified',
+      'Notes'          : v('t-notes') || '—',
+    })
+  }
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById(`transfer-step${i}`)
+    if (el) el.style.display = i === n ? 'block' : 'none'
+  }
+  setStepperState('ts', n)
+  const pct = { 1:33, 2:66, 3:90, 4:100 }[n]
+  document.getElementById('transfer-progress').style.width = pct + '%'
+}
+
+// ── stepper visual state ──────────────────────────────────
+function setStepperState(prefix, active) {
+  const count = 3
+  for (let i = 1; i <= count; i++) {
+    const circle = document.getElementById(`${prefix}-c${i}`)
+    const label  = document.getElementById(`${prefix}-l${i}`)
+    const line   = document.getElementById(`${prefix}-line${i}`)
+    if (!circle) continue
+    if (i < active) {
+      circle.className = 'step-circle done'; circle.textContent = '✓'
+      label.className  = 'step-label'
+    } else if (i === active) {
+      circle.className = 'step-circle active'; circle.textContent = i
+      label.className  = 'step-label active'
+    } else {
+      circle.className = 'step-circle idle'; circle.textContent = i
+      label.className  = 'step-label idle'
+    }
+    if (line) line.className = 'step-line ' + (i < active ? 'done' : 'idle')
+  }
+}
+
+// ── confirm grid builder ──────────────────────────────────
+function buildConfirm(gridId, fields) {
+  const grid = document.getElementById(gridId)
+  grid.innerHTML = ''
+  const entries = Object.entries(fields)
+  entries.forEach(([k, val], i) => {
+    const full = k === 'Notes' || k === 'Detailed Reason'
+    const div  = document.createElement('div')
+    div.className = 'conf-field' + (full ? ' full' : '')
+    div.innerHTML = `<div class="conf-label">${k}</div><div class="conf-val">${val}</div>`
+    grid.appendChild(div)
+  })
+}
+
+// ══════════════════════════════════════════════════════════
+//  SUBMIT HANDLERS (simulate — in real app POST to Flask)
+// ══════════════════════════════════════════════════════════
+async function fakeSHA(data) {
+  const enc = new TextEncoder().encode(JSON.stringify(data))
+  const buf = await crypto.subtle.digest('SHA-256', enc)
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('')
+}
+
+async function submitBatch() {
+  const btn = document.getElementById('batch-submit-btn')
+  btn.disabled = true
+  btn.innerHTML = '<span class="spinner"></span> Writing to chain…'
+
+  await sleep(1200)
+
+  blockCount++
+  const data = {
+    event: 'BATCH_CREATED', batch_id: v('b-bid'), drug_name: v('b-drug'),
+    manufacturer: v('b-mfg'), quantity: parseInt(v('b-qty')),
+    manufacture_date: v('b-mfd'), expiry_date: v('b-exp'),
+  }
+  const hash = await fakeSHA({ index: blockCount, timestamp: new Date().toISOString(), data })
+
+  renderSuccessBlock('batch-success-block', blockCount, 'BATCH_CREATED', v('b-bid'), hash)
+  addActivity('BATCH_CREATED', 'var(--mint)', `${v('b-drug')} · ${v('b-bid')}`)
+  batchGoStep(4)
+  btn.disabled = false
+  btn.textContent = '⛓ Register on Blockchain'
+}
+
+async function submitTransfer() {
+  const btn = document.getElementById('transfer-submit-btn')
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Writing to chain…'
+  await sleep(1200)
+  blockCount++
+  const hash = await fakeSHA({ index: blockCount, event: 'TRANSFERRED', batch_id: v('t-bid') })
+  renderSuccessBlock('transfer-success-block', blockCount, 'TRANSFERRED', v('t-bid'), hash)
+  document.getElementById('transfer-success-sub').textContent = `${v('t-drug')} transferred from ${v('t-from')||'sender'} → ${v('t-to')}.`
+  addActivity('TRANSFERRED', 'var(--amber)', `${v('t-drug')} · ${v('t-bid')}`)
+  transferGoStep(4)
+  btn.disabled = false; btn.textContent = '⛓ Log Transfer'
+}
+
+async function submitDispense() {
+  const checks = [
+    validate('d-bid','err-dbid'), validate('d-pharmacy','err-dph'),
+    validate('d-patient','err-dpid'), validateQty('d-qty','err-dqty')
+  ]
+  if (checks.some(c => !c)) { toast('⚠️','Missing Fields','Please fix highlighted errors.','var(--amber)'); return }
+
+  await sleep(1000)
+  blockCount++
+  const hash = await fakeSHA({ index: blockCount, event: 'DISPENSED', batch_id: v('d-bid') })
+  renderSuccessBlock('dispense-success-block', blockCount, 'DISPENSED', v('d-bid'), hash)
+  addActivity('DISPENSED', 'var(--blue)', `${v('d-drug')||'Drug'} · ${v('d-bid')}`)
+  document.getElementById('dispense-success').style.display = 'block'
+  document.getElementById('dispense-success').scrollIntoView({ behavior: 'smooth' })
+  toast('✅','Dispensing Recorded',`Patient ${v('d-patient')} received ${v('d-qty')} units.`)
+}
+
+async function submitFlag() {
+  const checks = [
+    validate('f-bid','err-fbid'), validate('f-by','err-fby'),
+    validate('f-reason','err-freason')
+  ]
+  if (!severity) { toast('⚠️','Select Severity','Choose a severity level.','var(--amber)'); return }
+  if (checks.some(c => !c)) { toast('⚠️','Missing Fields','Please fix errors.','var(--amber)'); return }
+
+  await sleep(1000)
+  blockCount++
+  const hash = await fakeSHA({ index: blockCount, event: 'FLAGGED', batch_id: v('f-bid') })
+  renderSuccessBlock('flag-success-block', blockCount, 'FLAGGED', v('f-bid'), hash)
+  addActivity('FLAGGED', 'var(--red)', `${v('f-drug')||'Drug'} · ${v('f-bid')}`)
+  document.getElementById('flag-success').style.display = 'block'
+  document.getElementById('flag-success').scrollIntoView({ behavior: 'smooth' })
+  toast('🚨','Alert Recorded',`Batch ${v('f-bid')} flagged as suspicious on chain.`,'var(--red)')
+}
+
+// ── UI helpers ────────────────────────────────────────────
+function renderSuccessBlock(containerId, idx, event, batchId, hash) {
+  document.getElementById(containerId).innerHTML = `
+    <div class="nb-header">
+      <span class="nb-badge">NEW BLOCK MINTED</span>
+      <span class="nb-index">Block #${idx}</span>
+    </div>
+    <div class="nb-event">${event}</div>
+    <div style="font-size:11px;color:var(--text-mid);margin-bottom:10px">Batch: ${batchId}</div>
+    <div class="nb-hash">hash: <span>${hash}</span></div>
+    <div class="nb-hash" style="margin-top:4px">timestamp: <span>${new Date().toISOString()}</span></div>
+  `
+  updateCounter()
+}
+
+function addActivity(event, color, label) {
+  const feed = document.getElementById('activity-feed')
+  const item = document.createElement('div')
+  item.className = 'activity-item'
+  item.innerHTML = `
+    <div class="ai-dot" style="background:${color}"></div>
+    <div>
+      <div class="ai-event" style="color:${color}">${event}</div>
+      <div class="ai-meta">${label}</div>
+    </div>
+    <div class="ai-time">just now</div>
+  `
+  feed.insertBefore(item, feed.firstChild)
+  if (feed.children.length > 6) feed.removeChild(feed.lastChild)
+}
+
+function updateCounter() {
+  document.getElementById('rp-block-count').textContent = blockCount
+}
+
+function setSeverity(level, btn) {
+  severity = level
+  document.querySelectorAll('.sev-btn').forEach(b => b.className = 'sev-btn')
+  btn.className = `sev-btn sel-${level}`
+}
+
+function v(id) {
+  const el = document.getElementById(id)
+  return el ? el.value.trim() : ''
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
+
+// ── Clear forms ───────────────────────────────────────────
+function clearBatchForm() {
+  ['b-bid','b-drug','b-mfg','b-qty','b-mfd','b-exp','b-loc','b-notes'].forEach(id => {
+    const el = document.getElementById(id); if(el) { el.value=''; el.classList.remove('error'); }
+  })
+  document.getElementById('b-class').value = ''
+  document.getElementById('b-notes-count').textContent = '0/200'
+}
+function clearTransferForm() {
+  ['t-bid','t-drug','t-from','t-fromloc','t-to','t-toloc','t-qty','t-notes'].forEach(id => {
+    const el = document.getElementById(id); if(el) { el.value=''; el.classList.remove('error'); }
+  })
+  document.getElementById('t-mode').value = ''
+  document.getElementById('t-notes-count').textContent = '0/200'
+}
+function clearDispenseForm() {
+  ['d-bid','d-drug','d-pharmacy','d-patient','d-qty','d-rx','d-dosage','d-pharmacist'].forEach(id => {
+    const el = document.getElementById(id); if(el) { el.value=''; el.classList.remove('error'); }
+  })
+}
+function clearFlagForm() {
+  ['f-bid','f-drug','f-by','f-reason','f-ref','f-date'].forEach(id => {
+    const el = document.getElementById(id); if(el) { el.value=''; el.classList.remove('error'); }
+  })
+  document.getElementById('f-category').value = ''
+  document.getElementById('f-reason-count').textContent = '0/500'
+  severity = null
+  document.querySelectorAll('.sev-btn').forEach(b => b.className = 'sev-btn')
+}
+
+// ── Batch ID quick-fill ───────────────────────────────────
+const batchMeta = {
+  B001: { drug: 'Paracetamol 500mg',  mfg: 'Sun Pharma Ltd.',     loc: 'Mumbai, India' },
+  B002: { drug: 'Amoxicillin 250mg',  mfg: 'Cipla Ltd.',          loc: 'Hyderabad, India' },
+  B003: { drug: 'Metformin 1000mg',   mfg: "Dr. Reddy's Labs",    loc: 'Ahmedabad, India' },
+}
+function fillBatch(id) {
+  const meta = batchMeta[id]; if (!meta) return
+  const active = document.querySelector('.page.active').id
+  if (active === 'form-transfer') {
+    const el = document.getElementById('t-bid'); if(el) el.value = id
+    const dn = document.getElementById('t-drug'); if(dn) dn.value = meta.drug
+  } else if (active === 'form-dispense') {
+    const el = document.getElementById('d-bid'); if(el) el.value = id
+    const dn = document.getElementById('d-drug'); if(dn) dn.value = meta.drug
+  } else if (active === 'form-flag') {
+    const el = document.getElementById('f-bid'); if(el) el.value = id
+    const dn = document.getElementById('f-drug'); if(dn) dn.value = meta.drug
+  }
+  toast('ℹ️','Batch Pre-filled',`${id} — ${meta.drug}`)
+}
+
+// ── Toast ─────────────────────────────────────────────────
+let toastTimer
+function toast(icon, title, msg, color = 'var(--mint)') {
+  clearTimeout(toastTimer)
+  const t = document.getElementById('toast')
+  document.getElementById('toast-icon').textContent = icon
+  document.getElementById('toast-title').textContent = title
+  document.getElementById('toast-title').style.color = color
+  document.getElementById('toast-msg').textContent = msg
+  t.style.borderColor = color
+  t.style.boxShadow = `0 8px 32px rgba(0,0,0,.5),0 0 16px ${color}44`
+  t.style.transform = 'translateY(0)'; t.style.opacity = '1'
+  toastTimer = setTimeout(() => { t.style.transform = 'translateY(80px)'; t.style.opacity = '0' }, 3500)
+}
+</script>
+</body>
+</html>

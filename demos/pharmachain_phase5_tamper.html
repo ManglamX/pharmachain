@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PharmaChain — Tamper Lab v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:    #03070F; --bg2: #060C18; --card: #0D1628; --card2: #0A1428;
+  --border: rgba(0,229,176,.10); --border2: rgba(0,229,176,.22);
+  --mint:  #00E5B0; --mint-dim: rgba(0,229,176,.10); --mint-glow: rgba(0,229,176,.28);
+  --red:   #FF2D55; --red-dim:  rgba(255,45,85,.12); --red-glow:  rgba(255,45,85,.30);
+  --amber: #FFB800; --amber-dim:rgba(255,184,0,.10);
+  --blue:  #3B82F6; --blue-dim: rgba(59,130,246,.10);
+  --text:  #D4E8FF; --text-mid: #7A9EC0; --text-dim: #3A5570;
+  --fd: 'Syne',sans-serif; --fm: 'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:var(--fm);font-size:13px;line-height:1.6;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.35}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── LAYOUT ── */
+.root{display:grid;grid-template-columns:1fr 360px;gap:24px;padding:28px;max-width:1400px;margin:0 auto}
+@media(max-width:1000px){.root{grid-template-columns:1fr}.right-col{display:none}}
+
+/* ── HEADER ── */
+.page-header{margin-bottom:24px}
+.page-title{font-family:var(--fd);font-size:22px;font-weight:800;color:#fff;display:flex;align-items:center;gap:12px}
+.page-sub{font-size:11px;color:var(--text-dim);margin-top:4px}
+.status-badge{font-size:10px;font-weight:700;padding:4px 12px;border-radius:100px;font-family:var(--fd);letter-spacing:.5px}
+.badge-valid{background:var(--mint-dim);border:1px solid var(--border2);color:var(--mint)}
+.badge-invalid{background:var(--red-dim);border:1px solid rgba(255,45,85,.3);color:var(--red)}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:20px}
+.card-title{font-family:var(--fd);font-size:14px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 6px var(--mint);display:inline-block}
+.dot-red{background:var(--red);box-shadow:0 0 6px var(--red)}
+
+/* ── ATTACK SCENARIOS ── */
+.scenarios{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.scenario{background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .2s;text-align:left}
+.scenario:hover{border-color:rgba(255,45,85,.4);background:rgba(255,45,85,.05);transform:translateY(-2px)}
+.scenario.active{border-color:var(--red);background:var(--red-dim);box-shadow:0 0 16px rgba(255,45,85,.2)}
+.sc-icon{font-size:20px;margin-bottom:8px}
+.sc-title{font-family:var(--fd);font-size:12px;font-weight:700;color:#fff;margin-bottom:3px}
+.sc-desc{font-size:10px;color:var(--text-dim);line-height:1.4}
+.sc-badge{display:inline-block;margin-top:6px;font-size:9px;font-weight:700;padding:2px 8px;border-radius:100px;letter-spacing:.5px;text-transform:uppercase}
+.sc-badge.high{background:rgba(255,45,85,.2);color:var(--red)}
+.sc-badge.med{background:rgba(255,184,0,.15);color:var(--amber)}
+.sc-badge.low{background:rgba(59,130,246,.15);color:var(--blue)}
+
+/* ── MANUAL CONTROLS ── */
+.controls-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:9px;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase}
+.finput,.fselect{width:100%;background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--fm);font-size:12px;padding:9px 12px;outline:none;transition:border-color .2s,box-shadow .2s;appearance:none}
+.finput:focus,.fselect:focus{border-color:var(--mint);box-shadow:0 0 0 3px var(--mint-dim)}
+
+/* ── BTN ── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;border:1.5px solid;font-family:var(--fm);font-size:11px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-primary{background:var(--mint);border-color:var(--mint);color:#04080F;font-weight:700;box-shadow:0 0 14px var(--mint-glow)}
+.btn-primary:hover{box-shadow:0 0 22px rgba(0,229,176,.45);transform:translateY(-1px)}
+.btn-ghost{background:transparent;border-color:var(--border2);color:var(--text-mid)}
+.btn-ghost:hover{color:var(--text);border-color:rgba(0,229,176,.3);background:var(--mint-dim)}
+.btn-danger{background:var(--red-dim);border-color:rgba(255,45,85,.35);color:var(--red);font-weight:700}
+.btn-danger:hover{background:rgba(255,45,85,.2);box-shadow:0 0 14px rgba(255,45,85,.25)}
+.btn-amber{background:var(--amber-dim);border-color:rgba(255,184,0,.3);color:var(--amber)}
+
+/* ── CHAIN VISUALIZER ── */
+.chain-wrap{overflow-x:auto;padding:8px 2px}
+.chain-track{display:flex;align-items:center;min-width:max-content;padding:4px 0}
+
+.block-card{flex-shrink:0;width:174px;border:2px solid;border-radius:11px;padding:13px;cursor:pointer;transition:border-color .3s,background .3s,box-shadow .3s,transform .3s;position:relative}
+.block-card:hover{transform:translateY(-3px)}
+.block-card.state-normal{border-color:var(--border);background:var(--bg2)}
+.block-card.state-selected{border-color:var(--mint);background:var(--mint-dim);box-shadow:0 0 20px var(--mint-glow)}
+.block-card.state-tampered{border-color:var(--red);background:var(--red-dim);box-shadow:0 0 18px var(--red-glow);animation:shake .45s ease}
+.block-card.state-downstream{border-color:rgba(255,45,85,.3);background:rgba(255,45,85,.05);opacity:.75}
+.block-card.state-ripple{border-color:var(--amber);background:rgba(255,184,0,.07);animation:ripple .6s ease}
+@keyframes shake{0%,100%{transform:translateY(0)}15%{transform:translateX(-5px)translateY(-3px)}35%{transform:translateX(5px)translateY(-3px)}55%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+@keyframes ripple{0%{transform:scale(1)}30%{transform:scale(1.04)}60%{transform:scale(.98)}100%{transform:scale(1)}}
+
+.bc-idx{font-size:9px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center}
+.bc-tamper-badge{font-size:8px;font-weight:700;color:var(--red);letter-spacing:.5px}
+.bc-event{font-family:var(--fd);font-size:11px;font-weight:700;margin-bottom:6px;line-height:1.2}
+.bc-batch{font-size:11px;color:var(--text);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bc-hash{font-size:9px;color:var(--text-dim);font-family:var(--fm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.bc-hash span{transition:color .4s}
+
+/* connectors */
+.connector{flex-shrink:0;padding:0 5px;position:relative;display:flex;align-items:center}
+.conn-break-label{position:absolute;top:-18px;left:50%;transform:translateX(-50%);background:var(--red);color:#fff;font-size:8px;font-weight:700;padding:2px 6px;border-radius:4px;white-space:nowrap;letter-spacing:.5px;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateX(-50%)translateY(4px)}to{opacity:1;transform:translateX(-50%)translateY(0)}}
+
+/* ── HASH DIFF PANEL ── */
+.hash-diff{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.hd-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px}
+.hd-label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;font-weight:700}
+.hd-label.original{color:var(--mint)}
+.hd-label.tampered{color:var(--red)}
+.hd-value{font-family:var(--fm);font-size:10px;word-break:break-all;line-height:1.8;letter-spacing:.3px}
+.char-match{color:var(--text-dim)}
+.char-diff{color:var(--red);background:rgba(255,45,85,.2);border-radius:2px;padding:0 1px}
+.char-orig{color:var(--mint);background:rgba(0,229,176,.12);border-radius:2px;padding:0 1px}
+
+.diff-summary{display:flex;gap:16px;margin-top:10px;font-size:10px}
+.diff-stat{display:flex;align-items:center;gap:5px}
+.diff-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ── FORENSICS ── */
+.forensics{display:none}
+.forensics.visible{display:block;animation:fadeUp .4s ease}
+
+.forensic-step{display:flex;gap:14px;margin-bottom:14px;align-items:flex-start}
+.fs-num{width:28px;height:28px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:12px;font-weight:800}
+.fs-num.red{background:var(--red-dim);color:var(--red)}
+.fs-num.amber{background:var(--amber-dim);color:var(--amber)}
+.fs-num.blue{background:var(--blue-dim);color:var(--blue)}
+.fs-title{font-family:var(--fd);font-size:12px;font-weight:700;color:#fff;margin-bottom:3px}
+.fs-body{font-size:11px;color:var(--text-mid);line-height:1.6}
+.fs-code{font-family:var(--fm);font-size:9px;background:rgba(0,0,0,.4);padding:6px 10px;border-radius:6px;margin-top:5px;word-break:break-all;color:var(--text-dim)}
+.fs-code .hl{color:var(--red)}
+.fs-code .ok{color:var(--mint)}
+
+/* ── ATTACK LOG ── */
+.log-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;background:var(--bg2);border:1px solid var(--border);margin-bottom:7px;animation:slideIn .3s ease}
+@keyframes slideIn{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:translateX(0)}}
+.log-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.log-body{flex:1;min-width:0}
+.log-title{font-family:var(--fd);font-size:11px;font-weight:700;color:var(--red)}
+.log-detail{font-size:10px;color:var(--text-dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.log-time{font-size:9px;color:var(--text-dim);flex-shrink:0}
+
+/* ── IMPACT METER ── */
+.impact-bar{height:6px;border-radius:3px;background:var(--border);overflow:hidden;margin-top:5px}
+.impact-fill{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+
+/* ── COUNTER-TAMPER DEMO ── */
+.ct-demo{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:14px}
+.ct-title{font-family:var(--fd);font-size:12px;font-weight:700;color:var(--amber);margin-bottom:6px}
+.ct-body{font-size:11px;color:var(--text-mid);margin-bottom:10px;line-height:1.6}
+.ct-result{display:none;padding:10px;border-radius:8px;background:var(--red-dim);border:1px solid rgba(255,45,85,.25);font-size:11px;color:var(--red);animation:fadeUp .3s ease;margin-top:8px}
+.ct-result.show{display:block}
+
+/* ── RIGHT COL ── */
+.right-col{display:flex;flex-direction:column;gap:16px}
+.rc-section-title{font-family:var(--fd);font-size:12px;font-weight:700;color:#fff;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.chain-health{padding:16px;border-radius:10px;border:1px solid var(--border2);transition:all .4s}
+.chain-health.valid{background:var(--mint-dim)}
+.chain-health.invalid{background:var(--red-dim);border-color:rgba(255,45,85,.3)}
+.ch-metric{font-family:var(--fd);font-size:28px;font-weight:800;line-height:1}
+.ch-metric.valid{color:var(--mint)}
+.ch-metric.invalid{color:var(--red)}
+
+/* spinner */
+.spinner{width:13px;height:13px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between">
+  <div style="display:flex;align-items:center;gap:12px">
+    <div style="width:32px;height:32px;background:var(--mint);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 0 14px var(--mint-glow)">💊</div>
+    <div>
+      <div style="font-family:var(--fd);font-size:15px;font-weight:800;color:#fff">PharmaChain</div>
+      <div style="font-size:9px;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase">Tamper Lab v2 — Phase 5</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span class="status-badge badge-valid" id="headerBadge">⛓ CHAIN INTACT</span>
+    <button class="btn btn-ghost" onclick="resetAll()" style="font-size:11px">↺ Reset</button>
+  </div>
+</div>
+
+<div class="root">
+<div class="left-col">
+
+<!-- ══ ATTACK SCENARIOS ══ -->
+<div class="card">
+  <div class="card-title"><span class="dot dot-red"></span>Pre-Built Attack Scenarios</div>
+  <div class="scenarios" id="scenarioGrid">
+
+    <div class="scenario" onclick="loadScenario('diversion',this)">
+      <div class="sc-icon">💊</div>
+      <div class="sc-title">Drug Diversion</div>
+      <div class="sc-desc">Reduce quantity from 10,000 → 50. Diverted doses hit black market.</div>
+      <span class="sc-badge high">High Severity</span>
+    </div>
+
+    <div class="scenario" onclick="loadScenario('expiry',this)">
+      <div class="sc-icon">📅</div>
+      <div class="sc-title">Expiry Fraud</div>
+      <div class="sc-desc">Relabel expired batch with a future date to resell unsafe drugs.</div>
+      <span class="sc-badge high">High Severity</span>
+    </div>
+
+    <div class="scenario" onclick="loadScenario('forgery',this)">
+      <div class="sc-icon">🏭</div>
+      <div class="sc-title">Manufacturer Forgery</div>
+      <div class="sc-desc">Replace legitimate manufacturer with a counterfeit producer.</div>
+      <span class="sc-badge high">High Severity</span>
+    </div>
+
+    <div class="scenario" onclick="loadScenario('route',this)">
+      <div class="sc-icon">🚚</div>
+      <div class="sc-title">Route Hijack</div>
+      <div class="sc-desc">Change destination to redirect shipment to unauthorized handler.</div>
+      <span class="sc-badge med">Medium</span>
+    </div>
+
+    <div class="scenario" onclick="loadScenario('identity',this)">
+      <div class="sc-icon">🏷️</div>
+      <div class="sc-title">Batch ID Swap</div>
+      <div class="sc-desc">Swap batch ID to pass off a different drug as this one.</div>
+      <span class="sc-badge med">Medium</span>
+    </div>
+
+    <div class="scenario" onclick="loadScenario('custom',this)">
+      <div class="sc-icon">⚙️</div>
+      <div class="sc-title">Custom Attack</div>
+      <div class="sc-desc">Choose any block, field and value manually below.</div>
+      <span class="sc-badge low">Manual</span>
+    </div>
+
+  </div>
+
+  <!-- Selected scenario preview -->
+  <div id="scenarioPreview" style="display:none;background:var(--bg2);border:1px solid rgba(255,45,85,.25);border-radius:9px;padding:14px;margin-bottom:14px">
+    <div style="font-size:9px;color:var(--red);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;font-weight:700">ATTACK PLAN</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:11px">
+      <div><span style="color:var(--text-dim)">Target Block: </span><span id="prev-block" style="color:var(--text);font-weight:600"></span></div>
+      <div><span style="color:var(--text-dim)">Field: </span><span id="prev-field" style="color:var(--text);font-weight:600"></span></div>
+      <div><span style="color:var(--text-dim)">New Value: </span><span id="prev-val" style="color:var(--red);font-weight:700"></span></div>
+    </div>
+    <div style="margin-top:8px;font-size:10px;color:var(--text-dim)" id="prev-motive"></div>
+  </div>
+
+  <!-- Manual controls (shown for custom) -->
+  <div id="manualControls" style="display:none">
+    <div class="controls-grid">
+      <div class="field">
+        <label>Target Block</label>
+        <select class="fselect" id="blockSel">
+          <option value="">— Pick a block —</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Field to Modify</label>
+        <select class="fselect" id="fieldSel">
+          <option value="">— Pick a field —</option>
+        </select>
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>Fraudulent Value</label>
+        <input class="finput" id="newValInput" placeholder="Enter the falsified value…"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- Execute bar -->
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <button class="btn btn-danger" id="executeBtn" onclick="executeTamper()" disabled>
+      ⚡ Execute Attack
+    </button>
+    <button class="btn btn-ghost" onclick="resetAll()">↺ Reset Chain</button>
+    <button class="btn btn-amber" onclick="tryCounterTamper()" id="counterBtn" style="display:none">
+      🔧 Try to "Fix" It
+    </button>
+    <div id="execStatus" style="font-size:11px;color:var(--text-dim);margin-left:4px"></div>
+  </div>
+
+  <!-- Counter-tamper demo -->
+  <div class="ct-demo" id="counterDemo" style="display:none">
+    <div class="ct-title">🔧 Counter-Tamper Attempt</div>
+    <div class="ct-body">
+      An attacker tries to patch the block's hash after tampering to avoid detection. Watch what happens…
+    </div>
+    <div class="ct-result" id="counterResult"></div>
+  </div>
+</div>
+
+<!-- ══ CHAIN VISUALIZER ══ -->
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div class="card-title" style="margin:0"><span class="dot" id="chainDot"></span> Live Chain — <span id="chainBlockCount">7</span> blocks</div>
+    <div style="display:flex;gap:8px">
+      <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-dim)">
+        <div style="width:10px;height:10px;border-radius:2px;background:var(--mint-dim);border:1px solid var(--mint)"></div> Normal
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-dim)">
+        <div style="width:10px;height:10px;border-radius:2px;background:var(--red-dim);border:1px solid var(--red)"></div> Tampered
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-dim)">
+        <div style="width:10px;height:10px;border-radius:2px;background:rgba(255,45,85,.05);border:1px solid rgba(255,45,85,.3)"></div> Downstream
+      </div>
+    </div>
+  </div>
+  <div class="chain-wrap">
+    <div class="chain-track" id="chainTrack"></div>
+  </div>
+
+  <!-- Selected block detail -->
+  <div id="blockDetail" style="display:none;margin-top:14px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;animation:fadeUp .25s ease">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-family:var(--fd);font-size:13px;font-weight:700;color:#fff" id="bd-title">Block #0</div>
+      <button onclick="document.getElementById('blockDetail').style.display='none'" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:11px">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="bd-fields"></div>
+  </div>
+</div>
+
+<!-- ══ HASH DIFF ══ -->
+<div class="card" id="hashDiffCard" style="display:none">
+  <div class="card-title"><span class="dot dot-red"></span> Live Hash Comparison</div>
+  <div class="hash-diff">
+    <div class="hd-box">
+      <div class="hd-label original">Original Hash (before attack)</div>
+      <div class="hd-value" id="hashOrig"></div>
+    </div>
+    <div class="hd-box" style="border-color:rgba(255,45,85,.25)">
+      <div class="hd-label tampered">Recomputed Hash (tampered data)</div>
+      <div class="hd-value" id="hashNew"></div>
+    </div>
+  </div>
+  <div class="diff-summary">
+    <div class="diff-stat"><div class="diff-dot" style="background:var(--mint)"></div><span id="diffMatch"></span> chars match</div>
+    <div class="diff-stat"><div class="diff-dot" style="background:var(--red)"></div><span id="diffMiss"></span> chars changed</div>
+    <div class="diff-stat" style="color:var(--text-dim)">→ completely different fingerprint = tamper detected</div>
+  </div>
+  <div style="margin-top:10px;padding:10px 12px;background:var(--red-dim);border:1px solid rgba(255,45,85,.2);border-radius:8px;font-size:11px;color:var(--red);font-family:var(--fd)">
+    🔴 <span id="diffExplain"></span>
+  </div>
+</div>
+
+<!-- ══ FORENSICS ══ -->
+<div class="forensics" id="forensicsPanel">
+  <div class="card">
+    <div class="card-title"><span class="dot dot-red"></span> Chain Forensics Report</div>
+    <div id="forensicsContent"></div>
+  </div>
+</div>
+
+</div><!-- /left-col -->
+
+<!-- ══ RIGHT COLUMN ══ -->
+<div class="right-col">
+
+  <!-- Chain Health -->
+  <div>
+    <div class="rc-section-title"><span class="dot" id="healthDot"></span> Chain Health</div>
+    <div class="chain-health valid" id="healthWidget">
+      <div class="ch-metric valid" id="healthStatus">INTACT</div>
+      <div style="font-size:10px;color:rgba(0,229,176,.7);margin-top:4px" id="healthSub">All hashes verified</div>
+      <div class="impact-bar" style="margin-top:10px">
+        <div class="impact-fill" id="impactFill" style="width:0%;background:var(--red)"></div>
+      </div>
+      <div style="font-size:9px;color:var(--text-dim);margin-top:4px" id="impactLabel">Tamper impact: 0%</div>
+    </div>
+  </div>
+
+  <!-- Block Inspection -->
+  <div>
+    <div class="rc-section-title">🔍 Block Inspector</div>
+    <div style="font-size:10px;color:var(--text-dim);margin-bottom:8px">Click any block in the chain to inspect it</div>
+    <div id="inspectorEmpty" style="background:var(--bg2);border:1px dashed var(--border);border-radius:8px;padding:20px;text-align:center;font-size:11px;color:var(--text-dim)">
+      Select a block →
+    </div>
+    <div id="inspectorContent" style="display:none"></div>
+  </div>
+
+  <!-- Attack Log -->
+  <div>
+    <div class="rc-section-title"><span class="dot dot-red"></span> Attack Log <span id="attackCount" style="font-size:10px;color:var(--text-dim);font-family:var(--fd)">(0)</span></div>
+    <div id="attackLog">
+      <div style="background:var(--bg2);border:1px dashed var(--border);border-radius:8px;padding:16px;text-align:center;font-size:11px;color:var(--text-dim)">
+        No attacks executed yet
+      </div>
+    </div>
+  </div>
+
+  <!-- Education panel -->
+  <div>
+    <div class="rc-section-title">📚 Why Can't They Fix It?</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="font-size:11px;color:var(--text-mid);line-height:1.8">
+        <div style="margin-bottom:8px">A smart attacker might try to re-hash the tampered block and update its hash. <strong style="color:var(--amber)">But this still breaks the chain</strong> because:</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;gap:8px"><span style="color:var(--red);font-weight:700;flex-shrink:0">1.</span> The <em>next</em> block still stores the <strong>original</strong> hash as its <code style="background:var(--card);padding:1px 4px;border-radius:3px;font-size:10px">prev_hash</code></div>
+          <div style="display:flex;gap:8px"><span style="color:var(--red);font-weight:700;flex-shrink:0">2.</span> Fixing block N forces them to fix block N+1 too, and so on</div>
+          <div style="display:flex;gap:8px"><span style="color:var(--red);font-weight:700;flex-shrink:0">3.</span> To fix the whole chain, they'd need all participants' private keys — impossible</div>
+          <div style="display:flex;gap:8px"><span style="color:var(--mint);font-weight:700;flex-shrink:0">✓</span> This is why blockchain is called <strong>immutable</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div><!-- /root -->
+
+<!-- TOAST -->
+<div id="toast" style="position:fixed;bottom:24px;right:24px;background:var(--card);border-radius:10px;padding:13px 18px;display:flex;align-items:center;gap:10px;font-size:12px;z-index:1000;transform:translateY(70px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);pointer-events:none;max-width:340px;">
+  <span id="ti" style="font-size:15px">⚡</span>
+  <div><div id="tt" style="font-family:var(--fd);font-size:12px;font-weight:700"></div><div id="tm" style="font-size:10px;color:var(--text-mid)"></div></div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  IN-BROWSER BLOCKCHAIN ENGINE
+// ════════════════════════════════════════════════════════════
+async function sha256(obj) {
+  const enc = new TextEncoder().encode(JSON.stringify(obj, Object.keys(obj).sort()))
+  const buf = await crypto.subtle.digest('SHA-256', enc)
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('')
+}
+
+async function blockHash(b) {
+  return sha256({ index:b.index, timestamp:b.timestamp, data:b.data, previous_hash:b.previous_hash })
+}
+
+let CHAIN = []
+let attackLog = []
+let selectedBlock = null
+let tamperedIdx = null    // the directly tampered block
+let firstBadIdx = null    // first block where chain breaks
+
+// Scenario state
+let activeScenario = null
+let scenarioConfig = null // { blockIdx, field, newVal, motive }
+
+async function sleep(ms){ return new Promise(r=>setTimeout(r,ms)) }
+
+async function buildChain() {
+  CHAIN = []
+  const entries = [
+    { event:'GENESIS', description:'PharmaChain initialized', created_by:'System' },
+    { event:'BATCH_CREATED', batch_id:'B001', drug_name:'Paracetamol 500mg', manufacturer:'Sun Pharma Ltd.', quantity:10000, manufacture_date:'2025-01-10', expiry_date:'2027-01-09', location:'Mumbai, India' },
+    { event:'TRANSFERRED', batch_id:'B001', drug_name:'Paracetamol 500mg', from_actor:'Sun Pharma Ltd.', from_location:'Mumbai', to_actor:'MedDistrib Pvt. Ltd.', to_location:'Pune', quantity:10000, notes:'Cold-chain maintained' },
+    { event:'DISPENSED', batch_id:'B001', drug_name:'Paracetamol 500mg', pharmacy:'HealthPlus Pharmacy', patient_id:'PAT-001', quantity:30, prescription:'RX-2025-001' },
+    { event:'BATCH_CREATED', batch_id:'B002', drug_name:'Amoxicillin 250mg', manufacturer:'Cipla Ltd.', quantity:5000, manufacture_date:'2025-02-05', expiry_date:'2026-08-04', location:'Hyderabad, India' },
+    { event:'TRANSFERRED', batch_id:'B002', drug_name:'Amoxicillin 250mg', from_actor:'Cipla Ltd.', from_location:'Hyderabad', to_actor:'Apollo Distributors', to_location:'Chennai', quantity:5000, notes:'Standard shipment' },
+    { event:'BATCH_CREATED', batch_id:'B003', drug_name:'Metformin 1000mg', manufacturer:"Dr. Reddy's Labs", quantity:8000, manufacture_date:'2025-03-01', expiry_date:'2027-02-28', location:'Ahmedabad, India' },
+  ]
+  let prevHash = '0'
+  for (let i = 0; i < entries.length; i++) {
+    const ts = new Date(Date.now() - (entries.length - i) * 60000).toISOString()
+    const block = { index:i, timestamp:ts, data:{...entries[i], timestamp:ts}, previous_hash:prevHash, hash:'' }
+    block.hash = await blockHash(block)
+    prevHash = block.hash
+    CHAIN.push(block)
+    await sleep(2)
+  }
+  tamperedIdx = null; firstBadIdx = null; selectedBlock = null
+}
+
+// ════════════════════════════════════════════════════════════
+//  ATTACK SCENARIOS
+// ════════════════════════════════════════════════════════════
+const SCENARIOS = {
+  diversion: {
+    blockFinder: c => c.find(b => b.data.event === 'TRANSFERRED' && b.data.batch_id === 'B001'),
+    field: 'quantity', newVal: 50,
+    motive: '💰 Criminal motive: Divert 9,950 units to the black market, replace with counterfeits. Quantity on record appears legitimate.'
+  },
+  expiry: {
+    blockFinder: c => c.find(b => b.data.event === 'BATCH_CREATED' && b.data.batch_id === 'B001'),
+    field: 'expiry_date', newVal: '2029-12-31',
+    motive: '☠️ Criminal motive: Batch B001 expired in 2027. Relabeling with 2029 expiry lets criminals resell dangerous expired drugs.'
+  },
+  forgery: {
+    blockFinder: c => c.find(b => b.data.event === 'BATCH_CREATED' && b.data.batch_id === 'B001'),
+    field: 'manufacturer', newVal: 'FakePharma Pvt. Ltd.',
+    motive: '🏭 Criminal motive: Replace the legitimate manufacturer to fraudulently attribute counterfeit drugs to a trusted brand.'
+  },
+  route: {
+    blockFinder: c => c.find(b => b.data.event === 'TRANSFERRED' && b.data.batch_id === 'B002'),
+    field: 'to_actor', newVal: 'Unlicensed Broker XYZ',
+    motive: '🚚 Criminal motive: Redirect shipment from licensed Apollo Distributors to an unlicensed handler. Drugs could be repackaged or diluted.'
+  },
+  identity: {
+    blockFinder: c => c.find(b => b.data.event === 'BATCH_CREATED' && b.data.batch_id === 'B002'),
+    field: 'batch_id', newVal: 'B999-FAKE',
+    motive: '🏷️ Criminal motive: Swap batch ID so counterfeit drugs pass provenance checks intended for a legitimate batch.'
+  },
+  custom: null,
+}
+
+function loadScenario(id, card) {
+  activeScenario = id
+  document.querySelectorAll('.scenario').forEach(s => s.classList.remove('active'))
+  card.classList.add('active')
+  document.getElementById('manualControls').style.display = id === 'custom' ? 'block' : 'none'
+  document.getElementById('executeBtn').disabled = false
+
+  if (id === 'custom') {
+    document.getElementById('scenarioPreview').style.display = 'none'
+    populateBlockSelect()
+  } else {
+    const cfg = SCENARIOS[id]
+    const block = cfg.blockFinder(CHAIN)
+    if (!block) { showToast('⚠️','Block not found','Reset chain and try again.','var(--amber)'); return }
+    const oldVal = block.data[cfg.field]
+    document.getElementById('prev-block').textContent = `Block #${block.index} (${block.data.event})`
+    document.getElementById('prev-field').textContent = cfg.field
+    document.getElementById('prev-val').textContent = String(cfg.newVal)
+    document.getElementById('prev-motive').textContent = cfg.motive
+    document.getElementById('scenarioPreview').style.display = 'block'
+  }
+}
+
+function populateBlockSelect() {
+  const sel = document.getElementById('blockSel')
+  sel.innerHTML = '<option value="">— Pick a block —</option>'
+  CHAIN.slice(1).forEach(b => {
+    const opt = document.createElement('option')
+    opt.value = b.index
+    opt.textContent = `Block #${b.index} — ${b.data.event} (${b.data.batch_id || 'genesis'})`
+    sel.appendChild(opt)
+  })
+  sel.onchange = () => {
+    const b = CHAIN.find(x => x.index === parseInt(sel.value))
+    const fs = document.getElementById('fieldSel')
+    fs.innerHTML = '<option value="">— Pick a field —</option>'
+    if (b) {
+      Object.keys(b.data).filter(k => k !== 'event' && k !== 'timestamp').forEach(k => {
+        const opt = document.createElement('option')
+        opt.value = k; opt.textContent = `${k} (current: ${String(b.data[k]).substring(0,30)})`
+        fs.appendChild(opt)
+      })
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  EXECUTE TAMPER
+// ════════════════════════════════════════════════════════════
+async function executeTamper() {
+  if (!activeScenario) { showToast('⚠️','No Scenario','Pick an attack scenario first.','var(--amber)'); return }
+
+  let targetBlock, field, newVal
+
+  if (activeScenario === 'custom') {
+    const bIdx = parseInt(document.getElementById('blockSel').value)
+    field = document.getElementById('fieldSel').value
+    newVal = document.getElementById('newValInput').value.trim()
+    targetBlock = CHAIN.find(b => b.index === bIdx)
+    if (!targetBlock || !field || !newVal) { showToast('⚠️','Incomplete','Fill all custom fields.','var(--amber)'); return }
+  } else {
+    const cfg = SCENARIOS[activeScenario]
+    targetBlock = cfg.blockFinder(CHAIN)
+    field = cfg.field
+    newVal = cfg.newVal
+    if (!targetBlock) { showToast('⚠️','Not found','Block not found. Reset chain.','var(--amber)'); return }
+  }
+
+  const oldVal = targetBlock.data[field]
+  const originalHash = targetBlock.hash
+
+  // ── Stage 1: show "hacking" feedback ──────────────────────
+  document.getElementById('execStatus').innerHTML = '<span class="spinner"></span> Injecting tampered data…'
+  await sleep(600)
+
+  // ── Stage 2: mutate data WITHOUT updating hash ─────────────
+  const oldData = { ...targetBlock.data }
+  targetBlock.data = { ...targetBlock.data, [field]: isNaN(newVal) ? newVal : Number(newVal) }
+  // DELIBERATELY do NOT recompute targetBlock.hash — this creates the mismatch
+  tamperedIdx = targetBlock.index
+
+  // ── Stage 3: compute what hash WOULD be ───────────────────
+  const recomputedHash = await blockHash(targetBlock)
+  // restore the stored (stale) hash so we can compare
+  // targetBlock.hash stays as the OLD hash — that's the whole point
+
+  // Find first chain break
+  await findFirstBad()
+  document.getElementById('execStatus').textContent = ''
+
+  // ── Stage 4: render chain with animation ──────────────────
+  await renderChain(targetBlock.index)
+
+  // ── Stage 5: show hash diff ────────────────────────────────
+  showHashDiff(originalHash, recomputedHash, field, oldVal, newVal)
+
+  // ── Stage 6: forensics ────────────────────────────────────
+  showForensics(targetBlock, field, oldVal, newVal, originalHash, recomputedHash)
+
+  // ── Stage 7: update health ────────────────────────────────
+  updateHealth()
+
+  // ── Stage 8: log the attack ───────────────────────────────
+  const motiveText = activeScenario !== 'custom'
+    ? SCENARIOS[activeScenario].motive
+    : `Custom attack on Block #${targetBlock.index}.${field}`
+  addAttackLog(activeScenario, targetBlock.index, field, oldVal, newVal, motiveText)
+
+  document.getElementById('counterBtn').style.display = 'flex'
+  document.getElementById('counterDemo').style.display = 'none'
+  document.getElementById('counterResult').classList.remove('show')
+
+  showToast('🔴', `Block #${targetBlock.index} Compromised`, `${field}: "${oldVal}" → "${newVal}"`, 'var(--red)')
+}
+
+async function findFirstBad() {
+  firstBadIdx = null
+  for (let i = 1; i < CHAIN.length; i++) {
+    const cur = CHAIN[i], prev = CHAIN[i-1]
+    const recomp = await blockHash(cur)
+    const selfBad  = recomp !== cur.hash
+    const chainBad = cur.previous_hash !== prev.hash
+    if (selfBad || chainBad) { firstBadIdx = i; break }
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  CHAIN RENDER
+// ════════════════════════════════════════════════════════════
+const EVENT_COLORS = {
+  GENESIS:'var(--text-dim)', BATCH_CREATED:'var(--mint)',
+  TRANSFERRED:'var(--amber)', DISPENSED:'var(--blue)', FLAGGED:'var(--red)'
+}
+const EVENT_LABELS = {
+  GENESIS:'Genesis', BATCH_CREATED:'Batch Created', TRANSFERRED:'Transferred',
+  DISPENSED:'Dispensed', FLAGGED:'Flagged'
+}
+
+async function renderChain(animateTamper) {
+  const track = document.getElementById('chainTrack')
+  track.innerHTML = ''
+  document.getElementById('chainBlockCount').textContent = CHAIN.length
+
+  for (let i = 0; i < CHAIN.length; i++) {
+    const b = CHAIN[i]
+    const isTampered = b.index === tamperedIdx
+    const isDownstream = firstBadIdx != null && b.index > firstBadIdx && b.index !== tamperedIdx
+    const isSelected = selectedBlock && b.index === selectedBlock.index
+    const isRipple = firstBadIdx != null && b.index > (tamperedIdx||0) && b.index !== tamperedIdx && !isDownstream
+
+    let stateClass = 'state-normal'
+    if (isSelected) stateClass = 'state-selected'
+    if (isTampered) stateClass = 'state-tampered'
+    if (isDownstream) stateClass = 'state-downstream'
+
+    const ev = b.data.event || 'UNKNOWN'
+    const evColor = isTampered ? 'var(--red)' : isDownstream ? 'rgba(255,45,85,.5)' : (EVENT_COLORS[ev] || 'var(--mint)')
+    const hashShort = b.hash.substring(0,14) + '…'
+    const prevShort = b.previous_hash.substring(0,14) + '…'
+
+    const card = document.createElement('div')
+    card.className = `block-card ${stateClass}`
+    if (animateTamper !== undefined && isTampered) card.style.animation = 'none'
+
+    card.innerHTML = `
+      <div class="bc-idx">
+        <span>Block #${b.index}</span>
+        ${isTampered ? '<span class="bc-tamper-badge">⚠ TAMPERED</span>' : ''}
+        ${isDownstream ? '<span class="bc-tamper-badge" style="color:rgba(255,45,85,.6)">↓ POISONED</span>' : ''}
+      </div>
+      <div class="bc-event" style="color:${evColor}">${EVENT_LABELS[ev]||ev}</div>
+      <div class="bc-batch">${b.data.batch_id || b.data.drug_name || 'System'}</div>
+      <div class="bc-hash">hash: <span style="color:${isTampered?'var(--red)':'var(--text-dim)'}">${hashShort}</span></div>
+      <div class="bc-hash">prev: <span style="color:var(--text-dim)">${prevShort}</span></div>
+    `
+    card.onclick = () => inspectBlock(b)
+    track.appendChild(card)
+
+    // Add connector between blocks
+    if (i < CHAIN.length - 1) {
+      const isBroken = firstBadIdx != null && i + 1 === firstBadIdx
+      const conn = document.createElement('div')
+      conn.className = 'connector'
+      conn.innerHTML = `
+        ${isBroken ? '<div class="conn-break-label">BROKEN</div>' : ''}
+        <svg width="44" height="28" viewBox="0 0 44 28" fill="none">
+          <line x1="0" y1="14" x2="32" y2="14"
+            stroke="${isBroken ? 'var(--red)' : 'rgba(0,229,176,0.2)'}"
+            stroke-width="1.5"
+            stroke-dasharray="${isBroken ? '4 3' : 'none'}"
+          />
+          <polygon points="30,8 42,14 30,20"
+            fill="${isBroken ? 'var(--red)' : 'rgba(0,229,176,0.2)'}"
+          />
+        </svg>`
+      track.appendChild(conn)
+    }
+  }
+
+  // Ripple animation: stagger downstream blocks
+  if (animateTamper !== undefined && firstBadIdx != null) {
+    await sleep(100)
+    const cards = track.querySelectorAll('.block-card')
+    for (let i = firstBadIdx + 1; i < CHAIN.length; i++) {
+      await sleep(120)
+      if (cards[i]) {
+        cards[i].style.animation = 'ripple .6s ease'
+        setTimeout(() => { if (cards[i]) cards[i].style.animation = '' }, 700)
+      }
+    }
+  }
+
+  // Update sidebar dot
+  const hasBreak = firstBadIdx !== null
+  document.getElementById('chainDot').className = hasBreak ? 'dot dot-red' : 'dot'
+  document.getElementById('headerBadge').textContent = hasBreak ? '⛓ CHAIN BROKEN' : '⛓ CHAIN INTACT'
+  document.getElementById('headerBadge').className = hasBreak ? 'status-badge badge-invalid' : 'status-badge badge-valid'
+}
+
+// ════════════════════════════════════════════════════════════
+//  BLOCK INSPECTOR
+// ════════════════════════════════════════════════════════════
+function inspectBlock(block) {
+  selectedBlock = block
+  renderChain()  // re-render to highlight selected
+
+  const ev = block.data.event || '?'
+  const isTampered = block.index === tamperedIdx
+  document.getElementById('inspectorEmpty').style.display = 'none'
+  const ic = document.getElementById('inspectorContent')
+  ic.style.display = 'block'
+
+  const fields = [
+    { k:'Index', v: block.index },
+    { k:'Event', v: ev },
+    { k:'Timestamp', v: new Date(block.timestamp).toLocaleString() },
+    ...Object.entries(block.data).filter(([k])=>!['event','timestamp'].includes(k)).map(([k,v])=>({k,v})),
+    { k:'Hash', v: block.hash, mono: true, color: isTampered ? 'var(--red)' : 'var(--mint)' },
+    { k:'Prev Hash', v: block.previous_hash, mono: true, color: 'var(--text-dim)' },
+  ]
+
+  ic.innerHTML = fields.map(f => `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:9px 11px;margin-bottom:6px">
+      <div style="font-size:9px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">${f.k}</div>
+      <div style="font-size:${f.mono?'9px':'11px'};color:${f.color||'var(--text)'};font-family:${f.mono?'var(--fm)':'inherit'};word-break:break-all">${f.v}</div>
+    </div>`).join('')
+
+  // Also show in chain block detail
+  document.getElementById('blockDetail').style.display = 'block'
+  document.getElementById('bd-title').textContent = `Block #${block.index} — ${EVENT_LABELS[ev]||ev}`
+  const bdf = document.getElementById('bd-fields')
+  bdf.innerHTML = fields.slice(0,-2).map(f=>`
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px">
+      <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">${f.k}</div>
+      <div style="font-size:11px;color:${f.color||'var(--text)'}">${f.v}</div>
+    </div>`).join('')
+}
+
+// ════════════════════════════════════════════════════════════
+//  HASH DIFF
+// ════════════════════════════════════════════════════════════
+function showHashDiff(origHash, newHash, field, oldVal, newVal) {
+  document.getElementById('hashDiffCard').style.display = 'block'
+
+  // character-level diff: color positions that changed
+  let origHtml = '', newHtml = ''
+  let matches = 0, misses = 0
+  for (let i = 0; i < 64; i++) {
+    const oc = origHash[i] || '', nc = newHash[i] || ''
+    if (oc === nc) {
+      origHtml += `<span class="char-match">${oc}</span>`
+      newHtml  += `<span class="char-match">${nc}</span>`
+      matches++
+    } else {
+      origHtml += `<span class="char-orig">${oc}</span>`
+      newHtml  += `<span class="char-diff">${nc}</span>`
+      misses++
+    }
+  }
+
+  document.getElementById('hashOrig').innerHTML = origHtml
+  document.getElementById('hashNew').innerHTML  = newHtml
+  document.getElementById('diffMatch').textContent = matches
+  document.getElementById('diffMiss').textContent  = misses
+  const pct = Math.round((misses/64)*100)
+  document.getElementById('diffExplain').textContent =
+    `${pct}% of hash characters differ — even a 1-character data change causes ~50% of the hash to change (avalanche effect). The chain validator instantly detects this mismatch.`
+}
+
+// ════════════════════════════════════════════════════════════
+//  FORENSICS
+// ════════════════════════════════════════════════════════════
+function showForensics(block, field, oldVal, newVal, origHash, newHash) {
+  document.getElementById('forensicsPanel').classList.add('visible')
+  const downstream = CHAIN.length - block.index - 1
+  const content = document.getElementById('forensicsContent')
+  content.innerHTML = `
+    <div class="forensic-step">
+      <div class="fs-num red">1</div>
+      <div>
+        <div class="fs-title">Data Mutation Detected</div>
+        <div class="fs-body">Block #${block.index} (${block.data.event}) had its <strong>${field}</strong> field changed without authorization.</div>
+        <div class="fs-code">
+          Old: <span class="ok">"${field}": ${JSON.stringify(oldVal)}</span><br>
+          New: <span class="hl">"${field}": ${JSON.stringify(isNaN(newVal)?newVal:Number(newVal))}</span>
+        </div>
+      </div>
+    </div>
+    <div class="forensic-step">
+      <div class="fs-num red">2</div>
+      <div>
+        <div class="fs-title">Hash Fingerprint Mismatch</div>
+        <div class="fs-body">SHA-256 of the modified data produces a completely different hash. The stored hash still reflects the original data.</div>
+        <div class="fs-code">
+          Stored hash:     <span class="ok">${origHash.substring(0,32)}…</span><br>
+          Recomputed hash: <span class="hl">${newHash.substring(0,32)}…</span>
+        </div>
+      </div>
+    </div>
+    <div class="forensic-step">
+      <div class="fs-num amber">3</div>
+      <div>
+        <div class="fs-title">Chain Link Poisoning</div>
+        <div class="fs-body">Block #${block.index + 1}'s <code>previous_hash</code> field still points to the old (original) hash of Block #${block.index}. This link is now permanently broken.</div>
+        <div class="fs-code">
+          Block #${block.index+1}.previous_hash: <span class="ok">${origHash.substring(0,32)}…</span><br>
+          Block #${block.index}.actual hash:     <span class="hl">${origHash.substring(0,32)}…</span> ← still matches<br>
+          <span style="color:var(--text-dim)">(but Block #${block.index}'s data no longer matches its stored hash)</span>
+        </div>
+      </div>
+    </div>
+    <div class="forensic-step">
+      <div class="fs-num amber">4</div>
+      <div>
+        <div class="fs-title">Downstream Cascade — ${downstream} Block${downstream!==1?'s':''} Poisoned</div>
+        <div class="fs-body">Every block after #${block.index} is now untrustworthy because the integrity of the chain before them cannot be verified. Their data may be legitimate but the chain is compromised.</div>
+      </div>
+    </div>
+    <div class="forensic-step">
+      <div class="fs-num blue">5</div>
+      <div>
+        <div class="fs-title">Validator Verdict</div>
+        <div class="fs-body">Running <code>validate_chain()</code> on the backend will return <strong style="color:var(--red)">is_valid: false</strong> with a specific error pointing to Block #${block.index}. The attack is exposed.</div>
+        <div class="fs-code">
+          { "is_valid": <span class="hl">false</span>, "errors": [ "Block #${block.index} data was TAMPERED — hash mismatch" ] }
+        </div>
+      </div>
+    </div>
+  `
+}
+
+// ════════════════════════════════════════════════════════════
+//  COUNTER-TAMPER DEMO
+// ════════════════════════════════════════════════════════════
+async function tryCounterTamper() {
+  if (tamperedIdx === null) return
+  document.getElementById('counterDemo').style.display = 'block'
+  const b = CHAIN[tamperedIdx]
+  const recomputed = await blockHash(b)
+
+  // "Fix" the block by updating its hash
+  const originalStoredHash = b.hash
+  b.hash = recomputed  // attacker re-hashes the block
+
+  await sleep(800)
+
+  // Now check: does the next block's previous_hash match?
+  const nextBlock = CHAIN[tamperedIdx + 1]
+  const counterResult = document.getElementById('counterResult')
+  counterResult.classList.add('show')
+
+  if (nextBlock) {
+    counterResult.innerHTML = `
+      <strong style="font-size:13px">❌ Still Broken!</strong><br><br>
+      The attacker updated Block #${tamperedIdx}'s hash to match the tampered data.<br><br>
+      But Block #${nextBlock.index} still stores the <em>original</em> hash as its <code>previous_hash</code>:<br>
+      <div style="font-family:var(--fm);font-size:9px;margin:8px 0;padding:6px;background:rgba(0,0,0,.3);border-radius:4px;word-break:break-all">
+        Block #${nextBlock.index}.previous_hash: <span style="color:var(--amber)">${nextBlock.previous_hash.substring(0,32)}…</span><br>
+        Block #${tamperedIdx}.new hash:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--red)">${recomputed.substring(0,32)}…</span>
+      </div>
+      They'd need to re-hash Block #${nextBlock.index}, then #${nextBlock.index+1}… all the way to the end — <strong>requiring every participant's cryptographic signature</strong>. Impossible. ✓
+    `
+    // revert the "fix" to restore the broken state for visual effect
+    b.hash = originalStoredHash
+    await findFirstBad()
+    renderChain()
+  } else {
+    counterResult.innerHTML = `This was the last block — but the self-integrity check on Block #${tamperedIdx} still fails because its stored hash doesn't match its data.`
+    b.hash = originalStoredHash
+  }
+
+  showToast('ℹ️', 'Counter-Tamper Failed', 'The cascade cannot be stopped without all participants.', 'var(--amber)')
+}
+
+// ════════════════════════════════════════════════════════════
+//  HEALTH WIDGET
+// ════════════════════════════════════════════════════════════
+function updateHealth() {
+  const broken = firstBadIdx !== null
+  const widget = document.getElementById('healthWidget')
+  const metric = document.getElementById('healthStatus')
+  const sub    = document.getElementById('healthSub')
+  const fill   = document.getElementById('impactFill')
+  const label  = document.getElementById('impactLabel')
+  const dot    = document.getElementById('healthDot')
+
+  if (broken) {
+    widget.className = 'chain-health invalid'
+    metric.className = 'ch-metric invalid'
+    metric.textContent = 'COMPROMISED'
+    sub.style.color = 'rgba(255,45,85,.7)'
+    sub.textContent = `Break at Block #${firstBadIdx}`
+    dot.className = 'dot dot-red'
+    const impactPct = Math.round(((CHAIN.length - firstBadIdx) / CHAIN.length) * 100)
+    fill.style.width = impactPct + '%'
+    fill.style.background = impactPct > 60 ? 'var(--red)' : 'var(--amber)'
+    label.textContent = `Tamper impact: ${impactPct}% of chain affected`
+  } else {
+    widget.className = 'chain-health valid'
+    metric.className = 'ch-metric valid'
+    metric.textContent = 'INTACT'
+    sub.style.color = 'rgba(0,229,176,.7)'
+    sub.textContent = 'All hashes verified'
+    dot.className = 'dot'
+    fill.style.width = '0%'
+    label.textContent = 'Tamper impact: 0%'
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  ATTACK LOG
+// ════════════════════════════════════════════════════════════
+function addAttackLog(scenario, blockIdx, field, oldVal, newVal, motive) {
+  attackLog.unshift({ scenario, blockIdx, field, oldVal, newVal, motive, time: new Date() })
+  document.getElementById('attackCount').textContent = `(${attackLog.length})`
+
+  const log = document.getElementById('attackLog')
+  // Clear placeholder
+  if (log.querySelector('[style*="dashed"]')) log.innerHTML = ''
+
+  const item = document.createElement('div')
+  item.className = 'log-item'
+  const scenarioNames = { diversion:'Drug Diversion', expiry:'Expiry Fraud', forgery:'Manufacturer Forgery', route:'Route Hijack', identity:'Batch ID Swap', custom:'Custom Attack' }
+  item.innerHTML = `
+    <div class="log-icon">⚡</div>
+    <div class="log-body">
+      <div class="log-title">${scenarioNames[scenario]||scenario}</div>
+      <div class="log-detail">Block #${blockIdx} · ${field}: "${String(oldVal).substring(0,15)}" → "${String(newVal).substring(0,15)}"</div>
+    </div>
+    <div class="log-time">${new Date().toLocaleTimeString()}</div>
+  `
+  log.insertBefore(item, log.firstChild)
+  if (log.children.length > 5) log.removeChild(log.lastChild)
+}
+
+// ════════════════════════════════════════════════════════════
+//  RESET
+// ════════════════════════════════════════════════════════════
+async function resetAll() {
+  tamperedIdx = null; firstBadIdx = null; selectedBlock = null; activeScenario = null; scenarioConfig = null
+
+  document.querySelectorAll('.scenario').forEach(s => s.classList.remove('active'))
+  document.getElementById('scenarioPreview').style.display = 'none'
+  document.getElementById('manualControls').style.display = 'none'
+  document.getElementById('executeBtn').disabled = true
+  document.getElementById('counterBtn').style.display = 'none'
+  document.getElementById('counterDemo').style.display = 'none'
+  document.getElementById('counterResult').classList.remove('show')
+  document.getElementById('hashDiffCard').style.display = 'none'
+  document.getElementById('forensicsPanel').classList.remove('visible')
+  document.getElementById('blockDetail').style.display = 'none'
+  document.getElementById('inspectorEmpty').style.display = 'block'
+  document.getElementById('inspectorContent').style.display = 'none'
+  document.getElementById('execStatus').textContent = ''
+
+  await buildChain()
+  await renderChain()
+  updateHealth()
+  showToast('↺', 'Chain Reset', 'Blockchain restored to original clean state.', 'var(--mint)')
+}
+
+// ════════════════════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════════════════════
+let toastTimer
+function showToast(icon, title, msg, color = 'var(--mint)') {
+  clearTimeout(toastTimer)
+  const t = document.getElementById('toast')
+  document.getElementById('ti').textContent = icon
+  document.getElementById('tt').textContent = title
+  document.getElementById('tt').style.color = color
+  document.getElementById('tm').textContent = msg
+  t.style.borderColor = color
+  t.style.boxShadow = `0 8px 32px rgba(0,0,0,.5),0 0 16px ${color}44`
+  t.style.transform = 'translateY(0)'; t.style.opacity = '1'
+  toastTimer = setTimeout(() => { t.style.transform = 'translateY(70px)'; t.style.opacity = '0' }, 4000)
+}
+
+// ════════════════════════════════════════════════════════════
+//  BOOT
+// ════════════════════════════════════════════════════════════
+;(async () => {
+  await buildChain()
+  await renderChain()
+  updateHealth()
+})()
+</script>
+</body>
+</html>

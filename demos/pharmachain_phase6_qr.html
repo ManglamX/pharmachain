@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PharmaChain — Phase 6: QR Verify System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<!-- Real QR code library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root {
+  --bg:#03070F; --bg2:#060C18; --card:#0D1628; --card2:#0A1428;
+  --border:rgba(0,229,176,.10); --border2:rgba(0,229,176,.22);
+  --mint:#00E5B0; --mint-dim:rgba(0,229,176,.10); --mint-glow:rgba(0,229,176,.28);
+  --red:#FF2D55; --red-dim:rgba(255,45,85,.12); --red-glow:rgba(255,45,85,.30);
+  --amber:#FFB800; --amber-dim:rgba(255,184,0,.10);
+  --blue:#3B82F6; --blue-dim:rgba(59,130,246,.10);
+  --purple:#A855F7; --purple-dim:rgba(168,85,247,.10);
+  --text:#D4E8FF; --text-mid:#7A9EC0; --text-dim:#3A5570;
+  --fd:'Syne',sans-serif; --fm:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:var(--fm);font-size:13px;line-height:1.6;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.35}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── TOP BAR ── */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;margin-bottom:0}
+.topbar-logo{display:flex;align-items:center;gap:10px}
+.logo-pill{width:32px;height:32px;background:var(--mint);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 0 14px var(--mint-glow)}
+.logo-name{font-family:var(--fd);font-size:15px;font-weight:800;color:#fff}
+.logo-sub{font-size:9px;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 28px;background:var(--bg2)}
+.tab-btn{padding:12px 20px;font-family:var(--fm);font-size:12px;font-weight:500;cursor:pointer;color:var(--text-mid);background:none;border:none;border-bottom:2px solid transparent;transition:all .2s;margin-bottom:-1px}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--mint);border-bottom-color:var(--mint)}
+
+/* ── LAYOUT ── */
+.page{display:none;padding:28px;max-width:1200px;margin:0 auto;animation:fadeUp .3s ease}
+.page.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px}
+.card-title{font-family:var(--fd);font-size:15px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;margin-bottom:18px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 6px var(--mint);display:inline-block;flex-shrink:0}
+.dot-r{background:var(--red);box-shadow:0 0 6px var(--red)}
+.dot-a{background:var(--amber);box-shadow:0 0 6px var(--amber)}
+
+/* ── BTN ── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;border:1.5px solid;font-family:var(--fm);font-size:11px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-primary{background:var(--mint);border-color:var(--mint);color:#04080F;font-weight:700;box-shadow:0 0 14px var(--mint-glow)}
+.btn-primary:hover{box-shadow:0 0 22px rgba(0,229,176,.45);transform:translateY(-1px)}
+.btn-ghost{background:transparent;border-color:var(--border2);color:var(--text-mid)}
+.btn-ghost:hover{color:var(--text);border-color:rgba(0,229,176,.3);background:var(--mint-dim)}
+.btn-print{background:var(--purple-dim);border-color:rgba(168,85,247,.3);color:var(--purple)}
+.btn-print:hover{background:rgba(168,85,247,.2)}
+
+/* ── SEARCH BAR ── */
+.search-wrap{display:flex;gap:10px;margin-bottom:24px}
+.search-input{flex:1;background:var(--card);border:1.5px solid var(--border);border-radius:9px;color:var(--text);font-family:var(--fm);font-size:13px;padding:12px 16px;outline:none;transition:border-color .2s,box-shadow .2s}
+.search-input:focus{border-color:var(--mint);box-shadow:0 0 0 3px var(--mint-dim)}
+.search-input::placeholder{color:var(--text-dim)}
+
+/* ── BATCH QUICK PILLS ── */
+.quick-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.qp{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:100px;background:var(--mint-dim);border:1px solid var(--border2);color:var(--mint);font-size:10px;font-weight:600;cursor:pointer;transition:all .2s}
+.qp:hover{background:rgba(0,229,176,.2);transform:translateY(-1px)}
+.qp.flagged{background:var(--red-dim);border-color:rgba(255,45,85,.3);color:var(--red)}
+
+/* ── TRUST SCORE ── */
+.trust-ring-wrap{position:relative;width:110px;height:110px;flex-shrink:0}
+.trust-ring-wrap svg{position:absolute;top:0;left:0;transform:rotate(-90deg)}
+.trust-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.trust-num{font-family:var(--fd);font-size:26px;font-weight:800;line-height:1}
+.trust-label{font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-top:2px}
+
+/* ── SUPPLY CHAIN JOURNEY ── */
+.journey{position:relative;margin:24px 0}
+.journey-track{display:flex;align-items:flex-start;overflow-x:auto;padding:8px 0 20px;gap:0}
+.journey-node{flex-shrink:0;text-align:center;width:140px;position:relative}
+.jn-icon-wrap{display:flex;flex-direction:column;align-items:center;position:relative;z-index:2}
+.jn-icon{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;border:2px solid;margin:0 auto 10px;transition:all .3s}
+.jn-icon.active{box-shadow:0 0 20px;animation:nodeAppear .5s ease}
+@keyframes nodeAppear{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.jn-event{font-family:var(--fd);font-size:10px;font-weight:700;margin-bottom:3px}
+.jn-actor{font-size:10px;color:var(--text-mid);max-width:130px;margin:0 auto;line-height:1.3}
+.jn-time{font-size:9px;color:var(--text-dim);margin-top:3px}
+.jn-loc{font-size:9px;color:var(--text-dim);display:flex;align-items:center;justify-content:center;gap:3px;margin-top:2px}
+
+/* connector between nodes */
+.journey-conn{flex:1;display:flex;align-items:center;padding:0 2px;min-width:30px;margin-top:26px;flex-shrink:0}
+.journey-conn svg{width:100%;min-width:28px}
+
+/* ── HASH CHAIN DISPLAY ── */
+.hash-chain{display:flex;flex-direction:column;gap:8px}
+.hc-item{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px}
+.hc-idx{width:28px;height:28px;border-radius:6px;background:var(--mint-dim);color:var(--mint);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:11px;font-weight:700;flex-shrink:0}
+.hc-event{font-size:11px;font-weight:600;color:var(--text)}
+.hc-hash{font-family:var(--fm);font-size:9px;color:var(--text-dim);margin-left:auto;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hc-status{font-size:10px;font-weight:700;flex-shrink:0}
+
+/* ── QR DISPLAY ── */
+.qr-wrap{display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap}
+.qr-canvas-box{flex-shrink:0;background:#fff;border-radius:12px;padding:14px;width:164px;height:164px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 28px rgba(0,229,176,.15)}
+#qrCanvas canvas{border-radius:4px}
+.qr-info{flex:1;min-width:220px}
+.qr-url{font-family:var(--fm);font-size:10px;color:var(--mint);background:var(--mint-dim);border:1px solid var(--border2);padding:7px 10px;border-radius:6px;margin-bottom:12px;word-break:break-all}
+.qr-desc{font-size:11px;color:var(--text-mid);line-height:1.7;margin-bottom:14px}
+.qr-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── MOBILE PREVIEW ── */
+.phone-frame{width:280px;flex-shrink:0;background:#111;border:6px solid #222;border-radius:36px;padding:16px 12px;box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 0 2px #333}
+.phone-notch{width:80px;height:20px;background:#000;border-radius:0 0 12px 12px;margin:0 auto 12px}
+.phone-screen{background:#f5f5f5;border-radius:20px;padding:16px;min-height:400px;color:#111;font-family:'Syne',sans-serif}
+.ps-header{background:linear-gradient(135deg,#00c49a,#00e5b0);padding:16px;border-radius:12px;margin-bottom:16px;color:#fff;text-align:center}
+.ps-logo{font-size:24px;margin-bottom:4px}
+.ps-title{font-size:14px;font-weight:800}
+.ps-sub{font-size:10px;opacity:.8}
+.ps-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:100px;font-size:11px;font-weight:700;margin:12px 0}
+.ps-badge.ok{background:#dcfdf4;color:#00a07a}
+.ps-badge.flag{background:#fde8ec;color:#d42d4c}
+.ps-drug{font-size:16px;font-weight:800;color:#111;margin-bottom:2px}
+.ps-batch{font-size:10px;color:#666;margin-bottom:14px}
+.ps-hop{display:flex;gap:8px;margin-bottom:10px;font-size:11px}
+.ps-hop-dot{width:10px;height:10px;border-radius:50%;background:#00e5b0;margin-top:3px;flex-shrink:0}
+.ps-hop-dot.bad{background:#ff2d55}
+.ps-hop-title{font-weight:700;color:#111;margin-bottom:1px}
+.ps-hop-meta{color:#666;font-size:10px}
+.ps-footer{margin-top:14px;text-align:center;font-size:9px;color:#999}
+.phone-home{width:40px;height:5px;background:#333;border-radius:3px;margin:10px auto 0}
+
+/* ── PRINT LABEL ── */
+.label-preview{background:#fff;color:#111;border-radius:12px;padding:20px;font-family:'Syne',sans-serif;border:1px solid var(--border);margin-top:16px}
+.lp-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:12px;margin-bottom:14px}
+.lp-brand{font-size:18px;font-weight:800;color:#111}
+.lp-tagline{font-size:9px;color:#666;letter-spacing:1px;text-transform:uppercase}
+.lp-drug{font-size:22px;font-weight:800;color:#111;margin-bottom:2px}
+.lp-dose{font-size:12px;color:#444}
+.lp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;font-size:10px}
+.lp-field{background:#f8f8f8;padding:7px 10px;border-radius:6px}
+.lp-fl{color:#666;margin-bottom:1px;font-size:9px;text-transform:uppercase;letter-spacing:.5px}
+.lp-fv{font-weight:700;color:#111}
+.lp-qr-row{display:flex;gap:16px;align-items:center;border-top:2px solid #111;padding-top:14px;margin-top:4px}
+.lp-qr-box{width:80px;height:80px;background:#f8f8f8;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.lp-verify-title{font-size:11px;font-weight:800;color:#111;margin-bottom:3px}
+.lp-verify-sub{font-size:9px;color:#666;line-height:1.5}
+.lp-trust{display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:3px 8px;border-radius:100px;font-size:9px;font-weight:700}
+.lp-trust.ok{background:#dcfdf4;color:#00a07a}
+.lp-trust.flag{background:#fde8ec;color:#d42d4c}
+
+/* ── COMPARE ── */
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.cmp-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+.cmp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.cmp-drug{font-family:var(--fd);font-size:14px;font-weight:700;color:#fff}
+.cmp-batch{font-size:10px;color:var(--text-mid);margin-top:1px}
+.cmp-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:7px;background:var(--bg2);margin-bottom:6px;font-size:11px}
+.cmp-key{color:var(--text-mid)}
+.cmp-val{font-weight:600;color:var(--text)}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:24px;right:24px;background:var(--card);border-radius:10px;padding:13px 18px;display:flex;align-items:center;gap:10px;font-size:12px;z-index:10000;transform:translateY(70px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);pointer-events:none;max-width:340px}
+
+/* @print */
+@media print {
+  body > *:not(.printable){display:none!important}
+  .printable{display:block!important;margin:0;padding:0;background:#fff;color:#111}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="logo-pill">💊</div>
+    <div>
+      <div class="logo-name">PharmaChain</div>
+      <div class="logo-sub">QR Verify System — Phase 6</div>
+    </div>
+  </div>
+  <div style="font-size:10px;color:var(--text-dim)">All 4 requirement pillars covered ✓</div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('verify',this)">◎ QR Verify</button>
+  <button class="tab-btn" onclick="showTab('scan',this)">📱 Patient Scan View</button>
+  <button class="tab-btn" onclick="showTab('label',this)">🏷️ Print Label</button>
+  <button class="tab-btn" onclick="showTab('compare',this)">⇌ Compare Batches</button>
+</div>
+
+<!-- ══════════ TAB: QR VERIFY ══════════ -->
+<div class="page active" id="tab-verify">
+
+  <div style="display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start">
+  <div>
+
+  <!-- Search -->
+  <div class="card">
+    <div class="card-title"><span class="dot"></span>Drug Batch Provenance Verification</div>
+    <div class="search-wrap">
+      <input class="search-input" id="verifyInput" placeholder="Enter Batch ID (e.g. B001, B002, B003)…" onkeydown="if(event.key==='Enter')runVerify()"/>
+      <button class="btn btn-primary" onclick="runVerify()">◎ Verify</button>
+    </div>
+    <div style="font-size:10px;color:var(--text-dim);margin-bottom:10px">Quick-load a demo batch:</div>
+    <div class="quick-pills">
+      <div class="qp" onclick="loadBatch('B001')">💊 B001 — Paracetamol</div>
+      <div class="qp" onclick="loadBatch('B002')">💊 B002 — Amoxicillin</div>
+      <div class="qp" onclick="loadBatch('B003')">💊 B003 — Metformin</div>
+      <div class="qp flagged" onclick="loadBatch('B002-FLAGGED')">⚠ B002 — Flagged Demo</div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="verifyResults" style="display:none">
+
+    <!-- Batch Header + Trust Score -->
+    <div class="card" id="batchHeader">
+      <div style="display:flex;gap:20px;align-items:flex-start">
+        <!-- Trust ring -->
+        <div class="trust-ring-wrap" id="trustRing">
+          <svg width="110" height="110" viewBox="0 0 110 110">
+            <circle cx="55" cy="55" r="48" stroke="rgba(255,255,255,.06)" stroke-width="8" fill="none"/>
+            <circle cx="55" cy="55" r="48" stroke="var(--mint)" stroke-width="8" fill="none"
+              stroke-dasharray="301.59" stroke-dashoffset="301.59"
+              stroke-linecap="round" id="trustArc" style="transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)"/>
+          </svg>
+          <div class="trust-center">
+            <div class="trust-num" id="trustNum">—</div>
+            <div class="trust-label">Trust Score</div>
+          </div>
+        </div>
+        <!-- Info -->
+        <div style="flex:1">
+          <div style="font-family:var(--fd);font-size:22px;font-weight:800;color:#fff;margin-bottom:4px" id="drugName">—</div>
+          <div style="font-size:11px;color:var(--mint);margin-bottom:12px" id="batchMeta">—</div>
+          <div id="statusBadge" style="display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:8px;font-family:var(--fd);font-size:13px;font-weight:700;margin-bottom:12px"></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:11px" id="batchStats"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Supply Chain Journey -->
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>Supply Chain Journey</div>
+      <div class="journey-track" id="journeyTrack"></div>
+    </div>
+
+    <!-- Hash Chain -->
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>Blockchain Records</div>
+      <div class="hash-chain" id="hashChain"></div>
+    </div>
+
+  </div><!-- /verifyResults -->
+  </div><!-- /left -->
+
+  <!-- Right panel: QR Code -->
+  <div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>QR Code</div>
+      <div id="qrPlaceholder" style="background:var(--bg2);border:1px dashed var(--border);border-radius:10px;padding:32px;text-align:center;font-size:11px;color:var(--text-dim)">
+        Verify a batch to generate its QR code
+      </div>
+      <div id="qrPanel" style="display:none">
+        <div class="qr-canvas-box" style="margin:0 auto 16px">
+          <div id="qrCanvas"></div>
+        </div>
+        <div class="qr-url" id="qrUrl">—</div>
+        <div class="qr-desc">
+          In production this QR is printed on the medicine packaging. A patient scans it to see the full verified supply chain — manufacturer → pharmacy.
+        </div>
+        <div class="qr-actions">
+          <button class="btn btn-ghost" onclick="downloadQR()" style="font-size:11px">↓ Download PNG</button>
+          <button class="btn btn-print" onclick="showTab('label', document.querySelectorAll('.tab-btn')[2])" style="font-size:11px">🏷️ Print Label</button>
+          <button class="btn btn-ghost" onclick="showTab('scan', document.querySelectorAll('.tab-btn')[1])" style="font-size:11px">📱 Patient View</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trust breakdown -->
+    <div class="card" id="trustBreakdown" style="display:none">
+      <div class="card-title"><span class="dot"></span>Trust Score Breakdown</div>
+      <div id="trustBreakdownContent"></div>
+    </div>
+  </div>
+  </div>
+</div><!-- /tab-verify -->
+
+
+<!-- ══════════ TAB: PATIENT SCAN VIEW ══════════ -->
+<div class="page" id="tab-scan">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start">
+    <!-- Phone mockup -->
+    <div>
+      <div style="font-family:var(--fd);font-size:16px;font-weight:700;color:#fff;margin-bottom:6px">📱 Patient Scan Experience</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:20px">This is what a patient sees after scanning the QR code on their medicine packaging</div>
+      <div style="display:flex;justify-content:center">
+        <div class="phone-frame">
+          <div class="phone-notch"></div>
+          <div class="phone-screen" id="phoneScreen">
+            <div style="text-align:center;padding:40px 0;color:#666;font-size:12px">
+              Select a batch to preview →
+            </div>
+          </div>
+          <div class="phone-home"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div>
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>Load Scan Preview</div>
+        <div style="font-size:11px;color:var(--text-mid);margin-bottom:14px">Simulate what appears when a patient scans the QR on a medicine pack</div>
+        <div class="quick-pills" style="margin-bottom:16px">
+          <div class="qp" onclick="previewScan('B001')">💊 B001 Clean</div>
+          <div class="qp flagged" onclick="previewScan('B002-FLAGGED')">⚠ B002 Flagged</div>
+          <div class="qp" onclick="previewScan('B003')">💊 B003 Clean</div>
+        </div>
+
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px">
+          <div style="font-family:var(--fd);font-size:12px;font-weight:700;color:#fff;margin-bottom:8px">What the patient sees:</div>
+          <div style="font-size:11px;color:var(--text-mid);line-height:1.8">
+            <div>✅ Drug name and batch ID</div>
+            <div>✅ Manufacturer details</div>
+            <div>✅ Full supply chain hops</div>
+            <div>✅ Expiry date warning</div>
+            <div>✅ Trust score badge</div>
+            <div>✅ Red alert if batch is flagged</div>
+          </div>
+        </div>
+
+        <div style="background:var(--amber-dim);border:1px solid rgba(255,184,0,.2);border-radius:9px;padding:12px;font-size:11px;color:var(--amber)">
+          <strong>Real-world deployment:</strong> The QR encodes a URL like <code style="font-size:9px;background:rgba(0,0,0,.3);padding:1px 4px;border-radius:3px">https://pharmachain.app/verify/B001</code>. Any smartphone camera opens this page — no app download required.
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /tab-scan -->
+
+
+<!-- ══════════ TAB: PRINT LABEL ══════════ -->
+<div class="page" id="tab-label">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
+    <div>
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>Generate Printable Drug Label</div>
+        <div style="font-size:11px;color:var(--text-mid);margin-bottom:14px">
+          Creates a print-ready label with QR code for physical packaging. Scan the QR to verify on any device.
+        </div>
+        <div class="quick-pills" style="margin-bottom:16px">
+          <div class="qp" onclick="generateLabel('B001')">💊 Label for B001</div>
+          <div class="qp" onclick="generateLabel('B002')">💊 Label for B002</div>
+          <div class="qp" onclick="generateLabel('B003')">💊 Label for B003</div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-print" onclick="printLabel()">🖨️ Print Label</button>
+          <button class="btn btn-ghost" onclick="downloadLabel()">↓ Save as Image</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px">Label Preview (A6 format)</div>
+      <div class="label-preview" id="labelPreview">
+        <div style="text-align:center;padding:40px;color:#ccc;font-size:12px">Generate a label to preview →</div>
+      </div>
+    </div>
+  </div>
+</div><!-- /tab-label -->
+
+
+<!-- ══════════ TAB: COMPARE ══════════ -->
+<div class="page" id="tab-compare">
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title"><span class="dot"></span>Compare Two Batches Side by Side</div>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <select id="cmpA" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--fm);font-size:12px;padding:9px 12px;outline:none;appearance:none">
+        <option value="B001">B001 — Paracetamol 500mg</option>
+        <option value="B002">B002 — Amoxicillin 250mg</option>
+        <option value="B003">B003 — Metformin 1000mg</option>
+      </select>
+      <span style="color:var(--text-dim);font-weight:700;font-size:16px">⇌</span>
+      <select id="cmpB" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--fm);font-size:12px;padding:9px 12px;outline:none;appearance:none">
+        <option value="B002">B002 — Amoxicillin 250mg</option>
+        <option value="B001">B001 — Paracetamol 500mg</option>
+        <option value="B003">B003 — Metformin 1000mg</option>
+      </select>
+      <button class="btn btn-primary" onclick="runCompare()">⇌ Compare</button>
+    </div>
+  </div>
+  <div class="compare-grid" id="compareGrid" style="display:none"></div>
+</div><!-- /tab-compare -->
+
+
+<!-- TOAST -->
+<div id="toast">
+  <span id="ti" style="font-size:15px">✅</span>
+  <div><div id="tt" style="font-family:var(--fd);font-size:12px;font-weight:700"></div><div id="tm" style="font-size:10px;color:var(--text-mid)"></div></div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  DEMO DATA
+// ════════════════════════════════════════════════════════════
+const BATCHES = {
+  B001: {
+    batch_id:'B001', drug_name:'Paracetamol 500mg', is_flagged:false,
+    latest_event:'DISPENSED', hop_count:3,
+    manufacturer:'Sun Pharma Ltd.', location:'Mumbai, India',
+    quantity:10000, manufacture_date:'2025-01-10', expiry_date:'2027-01-09',
+    classification:'Analgesic / Antipyretic',
+    history:[
+      { event:'BATCH_CREATED', actor:'Sun Pharma Ltd.', location:'Mumbai, India',    timestamp:'2025-01-10T08:30:00Z', qty:10000, icon:'🏭' },
+      { event:'TRANSFERRED',   actor:'Sun Pharma → MedDistrib', location:'Pune',    timestamp:'2025-01-15T14:00:00Z', qty:10000, icon:'🚚' },
+      { event:'DISPENSED',     actor:'HealthPlus Pharmacy',      location:'Pune',    timestamp:'2025-02-01T10:45:00Z', qty:30,    icon:'🏥' },
+    ],
+    blocks:[
+      { index:1, event:'BATCH_CREATED', hash:'5f272f3f760b316a5355a1ca6a4d2f82db2ea12e7e1234567890abcdef012345' },
+      { index:2, event:'TRANSFERRED',   hash:'698d59e098e24c1fd035b17a3a76f9c89f1e2345678901234567890abcdef012' },
+      { index:3, event:'DISPENSED',     hash:'020596301b3d9220995c3478e2b5a0fd12345678901234567890abcdef012345' },
+    ]
+  },
+  B002: {
+    batch_id:'B002', drug_name:'Amoxicillin 250mg', is_flagged:false,
+    latest_event:'TRANSFERRED', hop_count:2,
+    manufacturer:'Cipla Ltd.', location:'Hyderabad, India',
+    quantity:5000, manufacture_date:'2025-02-05', expiry_date:'2026-08-04',
+    classification:'Antibiotic',
+    history:[
+      { event:'BATCH_CREATED', actor:'Cipla Ltd.',         location:'Hyderabad, India', timestamp:'2025-02-05T09:00:00Z', qty:5000, icon:'🏭' },
+      { event:'TRANSFERRED',   actor:'Cipla → Apollo Dist.',location:'Chennai',         timestamp:'2025-02-12T16:30:00Z', qty:5000, icon:'🚚' },
+    ],
+    blocks:[
+      { index:4, event:'BATCH_CREATED', hash:'b2d0157046ab0b15119b4e7cc48e7bd4a8c2345678901234567890abcdef0123' },
+      { index:5, event:'TRANSFERRED',   hash:'4e62957e4000f83a825cb3b41a234567890123456789012345678901234567890' },
+    ]
+  },
+  'B002-FLAGGED': {
+    batch_id:'B002', drug_name:'Amoxicillin 250mg', is_flagged:true,
+    latest_event:'FLAGGED', hop_count:3,
+    manufacturer:'Cipla Ltd.', location:'Hyderabad, India',
+    quantity:5000, manufacture_date:'2025-02-05', expiry_date:'2026-08-04',
+    classification:'Antibiotic',
+    history:[
+      { event:'BATCH_CREATED', actor:'Cipla Ltd.',           location:'Hyderabad, India', timestamp:'2025-02-05T09:00:00Z', qty:5000, icon:'🏭' },
+      { event:'TRANSFERRED',   actor:'Cipla → Apollo Dist.', location:'Chennai',          timestamp:'2025-02-12T16:30:00Z', qty:5000, icon:'🚚' },
+      { event:'FLAGGED',       actor:'Apollo Hospital',       location:'Chennai',          timestamp:'2025-02-18T11:15:00Z', qty:null,  icon:'🚨', reason:'Packaging seal broken on arrival — suspected tampering' },
+    ],
+    blocks:[
+      { index:4, event:'BATCH_CREATED', hash:'b2d0157046ab0b15119b4e7cc48e7bd4a8c2345678901234567890abcdef0123' },
+      { index:5, event:'TRANSFERRED',   hash:'4e62957e4000f83a825cb3b41a234567890123456789012345678901234567890' },
+      { index:8, event:'FLAGGED',       hash:'a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890' },
+    ]
+  },
+  B003: {
+    batch_id:'B003', drug_name:'Metformin 1000mg', is_flagged:false,
+    latest_event:'BATCH_CREATED', hop_count:1,
+    manufacturer:"Dr. Reddy's Labs", location:'Ahmedabad, India',
+    quantity:8000, manufacture_date:'2025-03-01', expiry_date:'2027-02-28',
+    classification:'Antidiabetic',
+    history:[
+      { event:'BATCH_CREATED', actor:"Dr. Reddy's Labs", location:'Ahmedabad, India', timestamp:'2025-03-01T07:00:00Z', qty:8000, icon:'🏭' },
+    ],
+    blocks:[
+      { index:6, event:'BATCH_CREATED', hash:'4cb2e48b5ec397dac5f1e2b3c4d5e6f7890123456789012345678901234567890' },
+    ]
+  }
+}
+
+let currentBatch = null
+let currentQRCode = null
+
+// ════════════════════════════════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════════════════════════════════
+function showTab(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
+  document.getElementById('tab-' + id).classList.add('active')
+  if (btn) btn.classList.add('active')
+}
+
+function loadBatch(id) {
+  document.getElementById('verifyInput').value = id
+  runVerify()
+}
+
+// ════════════════════════════════════════════════════════════
+//  VERIFY & RENDER
+// ════════════════════════════════════════════════════════════
+function runVerify() {
+  const raw = document.getElementById('verifyInput').value.trim().toUpperCase()
+  const id = raw || 'B001'
+  const batch = BATCHES[id] || BATCHES[id.replace('-FLAGGED','')]
+  if (!batch) { showToast('❌','Not Found',`No records for batch "${id}".`,'var(--red)'); return }
+
+  // Use flagged version if input has FLAGGED or if it's B002-FLAGGED
+  const data = BATCHES[raw] || batch
+  currentBatch = data
+
+  renderVerifyResults(data)
+  generateQR(data.batch_id)
+  showToast('✅','Batch Verified',`${data.drug_name} — ${data.hop_count} chain records found.`)
+}
+
+function renderVerifyResults(data) {
+  document.getElementById('verifyResults').style.display = 'block'
+
+  const isFlagged = data.is_flagged
+  const score = computeTrustScore(data)
+
+  // Drug name + meta
+  document.getElementById('drugName').textContent = data.drug_name
+  document.getElementById('batchMeta').textContent = `Batch ID: ${data.batch_id} · ${data.hop_count} blockchain entries · ${data.manufacturer}`
+
+  // Status badge
+  const badge = document.getElementById('statusBadge')
+  badge.style.background = isFlagged ? 'var(--red-dim)' : 'var(--mint-dim)'
+  badge.style.border = `1px solid ${isFlagged ? 'rgba(255,45,85,.3)' : 'var(--border2)'}`
+  badge.style.color = isFlagged ? 'var(--red)' : 'var(--mint)'
+  badge.innerHTML = isFlagged
+    ? '⚠ FLAGGED AS SUSPICIOUS — DO NOT USE'
+    : '✓ VERIFIED — BLOCKCHAIN INTEGRITY CONFIRMED'
+
+  // Stats
+  const statsData = [
+    { label:'Manufacturer',    value: data.manufacturer },
+    { label:'Expiry Date',     value: data.expiry_date },
+    { label:'Classification',  value: data.classification },
+  ]
+  document.getElementById('batchStats').innerHTML = statsData.map(s => `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:9px 12px">
+      <div style="font-size:9px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">${s.label}</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text)">${s.value}</div>
+    </div>`).join('')
+
+  // Trust ring animation
+  animateTrustRing(score, isFlagged)
+
+  // Journey
+  renderJourney(data.history)
+
+  // Hash chain
+  renderHashChain(data.blocks)
+
+  // Trust breakdown
+  renderTrustBreakdown(data, score)
+}
+
+// ── Trust Score ───────────────────────────────────────────
+function computeTrustScore(data) {
+  let score = 0
+  if (!data.is_flagged)           score += 40  // not flagged
+  if (data.hop_count >= 1)        score += 15  // has at least manufacturer record
+  if (data.hop_count >= 2)        score += 15  // has transfer record
+  if (data.hop_count >= 3)        score += 10  // fully dispensed
+  if (data.expiry_date > '2025')  score += 10  // not expired
+  if (data.manufacturer)          score +=  5  // has manufacturer info
+  if (data.location)              score +=  5  // has location
+  return Math.min(score, 100)
+}
+
+function animateTrustRing(score, flagged) {
+  const arc = document.getElementById('trustArc')
+  const num = document.getElementById('trustNum')
+  const circumference = 301.59
+  const offset = circumference - (score / 100) * circumference
+
+  const color = flagged ? 'var(--red)' : score >= 80 ? 'var(--mint)' : score >= 50 ? 'var(--amber)' : 'var(--red)'
+  arc.style.stroke = color
+  num.style.color = color
+
+  setTimeout(() => { arc.style.strokeDashoffset = offset }, 100)
+
+  // Animate number
+  let current = 0
+  const step = score / 40
+  const interval = setInterval(() => {
+    current = Math.min(current + step, score)
+    num.textContent = Math.round(current)
+    if (current >= score) clearInterval(interval)
+  }, 25)
+}
+
+// ── Journey Map ───────────────────────────────────────────
+const EVENT_STYLES = {
+  BATCH_CREATED: { color:'var(--mint)',  border:'var(--mint)',  bg:'var(--mint-dim)' },
+  TRANSFERRED:   { color:'var(--amber)', border:'var(--amber)', bg:'var(--amber-dim)' },
+  RECEIVED:      { color:'var(--blue)',  border:'var(--blue)',  bg:'var(--blue-dim)' },
+  DISPENSED:     { color:'var(--blue)',  border:'var(--blue)',  bg:'var(--blue-dim)' },
+  FLAGGED:       { color:'var(--red)',   border:'var(--red)',   bg:'var(--red-dim)' },
+}
+
+function renderJourney(history) {
+  const track = document.getElementById('journeyTrack')
+  track.innerHTML = ''
+  history.forEach((hop, i) => {
+    const style = EVENT_STYLES[hop.event] || EVENT_STYLES.BATCH_CREATED
+    const delay = i * 150
+
+    const node = document.createElement('div')
+    node.className = 'journey-node'
+    node.style.animationDelay = delay + 'ms'
+    node.innerHTML = `
+      <div class="jn-icon-wrap">
+        <div class="jn-icon active" style="border-color:${style.border};background:${style.bg};box-shadow:0 0 16px ${style.border}55;animation-delay:${delay}ms">
+          ${hop.icon}
+        </div>
+        <div class="jn-event" style="color:${style.color}">${hop.event.replace('_',' ')}</div>
+        <div class="jn-actor">${hop.actor}</div>
+        <div class="jn-loc">📍 ${hop.location}</div>
+        <div class="jn-time">${new Date(hop.timestamp).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'})}</div>
+        ${hop.qty != null ? `<div style="font-size:9px;color:var(--text-dim);margin-top:2px">${hop.qty.toLocaleString()} units</div>` : ''}
+        ${hop.reason ? `<div style="font-size:9px;color:var(--red);margin-top:4px;max-width:130px;line-height:1.3">"${hop.reason}"</div>` : ''}
+      </div>`
+    track.appendChild(node)
+
+    if (i < history.length - 1) {
+      const conn = document.createElement('div')
+      conn.className = 'journey-conn'
+      conn.style.animationDelay = (delay + 100) + 'ms'
+      conn.innerHTML = `<svg viewBox="0 0 50 12" fill="none" height="12">
+        <line x1="0" y1="6" x2="40" y2="6" stroke="rgba(0,229,176,0.25)" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <polygon points="36,2 48,6 36,10" fill="rgba(0,229,176,0.3)"/>
+      </svg>`
+      track.appendChild(conn)
+    }
+  })
+}
+
+// ── Hash Chain ────────────────────────────────────────────
+function renderHashChain(blocks) {
+  const wrap = document.getElementById('hashChain')
+  wrap.innerHTML = ''
+  blocks.forEach((b, i) => {
+    const div = document.createElement('div')
+    div.className = 'hc-item'
+    div.style.animationDelay = (i * 80) + 'ms'
+    div.innerHTML = `
+      <div class="hc-idx">${b.index}</div>
+      <div>
+        <div class="hc-event">${b.event.replace('_',' ')}</div>
+        <div style="font-family:var(--fm);font-size:9px;color:var(--text-dim);margin-top:1px">hash: ${b.hash.substring(0,24)}…</div>
+      </div>
+      <div class="hc-hash">${b.hash.substring(0,32)}…</div>
+      <div class="hc-status" style="color:var(--mint)">✓ VALID</div>`
+    wrap.appendChild(div)
+
+    // chain link arrow
+    if (i < blocks.length - 1) {
+      const arrow = document.createElement('div')
+      arrow.style.cssText = 'text-align:center;font-size:11px;color:var(--text-dim);padding:2px 0 2px 40px;font-family:var(--fm)'
+      arrow.innerHTML = `↓ prev_hash links to Block #${b.index}`
+      wrap.appendChild(arrow)
+    }
+  })
+}
+
+// ── Trust Breakdown ───────────────────────────────────────
+function renderTrustBreakdown(data, score) {
+  document.getElementById('trustBreakdown').style.display = 'block'
+  const checks = [
+    { label:'Not flagged',              ok: !data.is_flagged,          pts:40 },
+    { label:'Manufacturer on chain',    ok: data.hop_count >= 1,       pts:15 },
+    { label:'Transfer logged',          ok: data.hop_count >= 2,       pts:15 },
+    { label:'Dispensed to patient',     ok: data.hop_count >= 3,       pts:10 },
+    { label:'Expiry date valid',        ok: data.expiry_date > '2025', pts:10 },
+    { label:'Manufacturer verified',    ok: !!data.manufacturer,       pts:5  },
+    { label:'Location recorded',        ok: !!data.location,           pts:5  },
+  ]
+  const html = checks.map(c => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:7px;background:var(--bg2);margin-bottom:6px;font-size:11px">
+      <div style="display:flex;align-items:center;gap:7px">
+        <span style="color:${c.ok?'var(--mint)':'var(--text-dim)'}">${c.ok?'✓':'○'}</span>
+        <span style="color:${c.ok?'var(--text)':'var(--text-dim)'}">${c.label}</span>
+      </div>
+      <span style="font-weight:700;color:${c.ok?'var(--mint)':'var(--text-dim)'}">+${c.pts}</span>
+    </div>`).join('')
+  document.getElementById('trustBreakdownContent').innerHTML = html + `
+    <div style="display:flex;justify-content:space-between;padding:10px 10px 0;font-family:var(--fd);font-size:13px;font-weight:700;border-top:1px solid var(--border);margin-top:4px">
+      <span style="color:var(--text)">Total Trust Score</span>
+      <span style="color:${score>=80?'var(--mint)':score>=50?'var(--amber)':'var(--red)'}">${score}/100</span>
+    </div>`
+}
+
+// ── QR Generation ─────────────────────────────────────────
+function generateQR(batchId) {
+  const url = `https://pharmachain.app/verify/${batchId}`
+  document.getElementById('qrUrl').textContent = url
+
+  const container = document.getElementById('qrCanvas')
+  container.innerHTML = ''
+
+  try {
+    currentQRCode = new QRCode(container, {
+      text: url,
+      width: 136, height: 136,
+      colorDark: '#000000', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    })
+    document.getElementById('qrPlaceholder').style.display = 'none'
+    document.getElementById('qrPanel').style.display = 'block'
+  } catch(e) {
+    container.innerHTML = '<div style="font-size:10px;color:#888;text-align:center">QR library not available in this environment</div>'
+  }
+}
+
+function downloadQR() {
+  const canvas = document.querySelector('#qrCanvas canvas')
+  if (!canvas) { showToast('⚠️','No QR','Generate a QR first.','var(--amber)'); return }
+  const link = document.createElement('a')
+  link.download = `PharmaChain-${currentBatch?.batch_id||'batch'}-QR.png`
+  link.href = canvas.toDataURL('image/png')
+  link.click()
+  showToast('↓','Downloaded',`QR code saved as PNG.`)
+}
+
+// ════════════════════════════════════════════════════════════
+//  PATIENT SCAN VIEW
+// ════════════════════════════════════════════════════════════
+function previewScan(id) {
+  const data = BATCHES[id]
+  if (!data) return
+  const isFlagged = data.is_flagged
+  const score = computeTrustScore(data)
+  const scoreColor = score >= 80 ? '#00a07a' : score >= 50 ? '#d97706' : '#d42d4c'
+  const bgColor = score >= 80 ? '#dcfdf4' : score >= 50 ? '#fef3c7' : '#fde8ec'
+
+  const hops = data.history.map(h => `
+    <div class="ps-hop">
+      <div class="ps-hop-dot ${h.event==='FLAGGED'?'bad':''}"></div>
+      <div>
+        <div class="ps-hop-title">${h.event.replace('_',' ')}</div>
+        <div class="ps-hop-meta">${h.actor} · ${new Date(h.timestamp).toLocaleDateString('en-IN')}</div>
+        ${h.reason ? `<div style="font-size:9px;color:#d42d4c;margin-top:2px">${h.reason}</div>` : ''}
+      </div>
+    </div>`).join('')
+
+  document.getElementById('phoneScreen').innerHTML = `
+    <div class="ps-header" style="${isFlagged?'background:linear-gradient(135deg,#c0392b,#ff2d55)':''}">
+      <div class="ps-logo">💊</div>
+      <div class="ps-title">PharmaChain</div>
+      <div class="ps-sub">Drug Authenticity Verified by Blockchain</div>
+    </div>
+
+    ${isFlagged ? `
+    <div style="background:#fde8ec;border:2px solid #ff2d55;border-radius:10px;padding:12px;margin-bottom:12px;text-align:center">
+      <div style="font-size:20px;margin-bottom:4px">🚨</div>
+      <div style="font-size:13px;font-weight:800;color:#d42d4c">SUSPICIOUS BATCH</div>
+      <div style="font-size:10px;color:#666;margin-top:3px">This batch has been flagged. Do NOT use.</div>
+    </div>` : ''}
+
+    <div class="ps-badge ${isFlagged?'flag':'ok'}">
+      ${isFlagged ? '⚠ FLAGGED' : '✓ VERIFIED'}
+    </div>
+
+    <div class="ps-drug">${data.drug_name}</div>
+    <div class="ps-batch">Batch ID: ${data.batch_id}</div>
+
+    <div style="background:${bgColor};border-radius:8px;padding:8px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:11px;font-weight:700;color:${scoreColor}">Trust Score</span>
+      <span style="font-size:16px;font-weight:800;color:${scoreColor}">${score}/100</span>
+    </div>
+
+    ${hops}
+
+    <div style="background:#f8f8f8;border-radius:8px;padding:8px;margin-top:8px;font-size:9px;color:#666">
+      <div><strong>Expiry:</strong> ${data.expiry_date}</div>
+      <div><strong>Manufacturer:</strong> ${data.manufacturer}</div>
+    </div>
+
+    <div class="ps-footer">
+      Powered by PharmaChain · Blockchain-verified<br>
+      pharmachain.app · ${new Date().toLocaleDateString()}
+    </div>`
+}
+
+// ════════════════════════════════════════════════════════════
+//  PRINT LABEL
+// ════════════════════════════════════════════════════════════
+function generateLabel(batchId) {
+  const data = BATCHES[batchId]
+  if (!data) return
+  const score = computeTrustScore(data)
+  const isFlagged = data.is_flagged
+
+  // Generate mini QR for label
+  const labelQRDiv = document.createElement('div')
+  labelQRDiv.id = 'label-qr-temp'
+  document.body.appendChild(labelQRDiv)
+  try {
+    new QRCode(labelQRDiv, {
+      text: `https://pharmachain.app/verify/${batchId}`,
+      width: 70, height: 70,
+      colorDark:'#000', colorLight:'#fff',
+      correctLevel: QRCode.CorrectLevel.M
+    })
+  } catch(e) {}
+
+  setTimeout(() => {
+    const canvas = labelQRDiv.querySelector('canvas')
+    const qrDataUrl = canvas ? canvas.toDataURL() : ''
+    document.body.removeChild(labelQRDiv)
+
+    document.getElementById('labelPreview').innerHTML = `
+      <div class="lp-header">
+        <div>
+          <div class="lp-brand">💊 PharmaChain</div>
+          <div class="lp-tagline">Blockchain-Verified Medicine</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:10px;color:#666">Batch ID</div>
+          <div style="font-size:14px;font-weight:800;color:#111">${batchId}</div>
+        </div>
+      </div>
+
+      <div class="lp-drug">${data.drug_name}</div>
+      <div class="lp-dose">${data.classification} · ${data.quantity?.toLocaleString()} units</div>
+
+      <div class="lp-grid">
+        <div class="lp-field">
+          <div class="lp-fl">Manufacturer</div>
+          <div class="lp-fv">${data.manufacturer}</div>
+        </div>
+        <div class="lp-field">
+          <div class="lp-fl">Location</div>
+          <div class="lp-fv">${data.location}</div>
+        </div>
+        <div class="lp-field">
+          <div class="lp-fl">Mfg. Date</div>
+          <div class="lp-fv">${data.manufacture_date}</div>
+        </div>
+        <div class="lp-field">
+          <div class="lp-fl">Expiry Date</div>
+          <div class="lp-fv" style="color:${data.expiry_date < '2026-01-01'?'#d42d4c':'#111'}">${data.expiry_date}</div>
+        </div>
+      </div>
+
+      <div class="lp-qr-row">
+        <div class="lp-qr-box">
+          ${qrDataUrl ? `<img src="${qrDataUrl}" style="width:70px;height:70px;border-radius:4px"/>` : '<div style="font-size:8px;color:#999;text-align:center">Scan to Verify</div>'}
+        </div>
+        <div style="flex:1">
+          <div class="lp-verify-title">📱 Scan to Verify Authenticity</div>
+          <div class="lp-verify-sub">
+            Open your camera app and scan this QR code to instantly verify this medicine's complete supply chain history on the PharmaChain blockchain.
+          </div>
+          <span class="lp-trust ${isFlagged?'flag':'ok'}">
+            ${isFlagged ? '⚠ FLAGGED' : `✓ Trust Score: ${score}/100`}
+          </span>
+        </div>
+      </div>`
+
+    showToast('🏷️','Label Generated',`${data.drug_name} label ready to print.`)
+  }, 300)
+}
+
+function printLabel() {
+  const preview = document.getElementById('labelPreview').innerHTML
+  const win = window.open('', '_blank')
+  win.document.write(`
+    <html><head><title>PharmaChain Drug Label</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      body{font-family:'Syne',sans-serif;margin:20px;background:#fff;color:#111;font-size:12px}
+      .lp-brand{font-size:16px;font-weight:800}.lp-tagline{font-size:9px;color:#666;letter-spacing:1px;text-transform:uppercase}
+      .lp-drug{font-size:20px;font-weight:800;margin:8px 0 2px}.lp-dose{font-size:11px;color:#444}
+      .lp-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0}
+      .lp-field{background:#f8f8f8;padding:6px 8px;border-radius:4px}
+      .lp-fl{font-size:8px;color:#666;text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px}
+      .lp-fv{font-weight:700}.lp-header{display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:12px}
+      .lp-qr-row{display:flex;gap:14px;border-top:2px solid #111;padding-top:12px;margin-top:4px;align-items:center}
+      .lp-qr-box{width:78px;height:78px;background:#f8f8f8;border-radius:4px;display:flex;align-items:center;justify-content:center}
+      .lp-verify-title{font-size:11px;font-weight:800;margin-bottom:3px}
+      .lp-verify-sub{font-size:9px;color:#666;line-height:1.5}
+      .lp-trust{display:inline-flex;align-items:center;gap:4px;margin-top:5px;padding:2px 7px;border-radius:100px;font-size:9px;font-weight:700}
+      .lp-trust.ok{background:#dcfdf4;color:#00a07a}.lp-trust.flag{background:#fde8ec;color:#d42d4c}
+    </style></head><body>${preview}</body></html>`)
+  win.document.close()
+  setTimeout(() => win.print(), 500)
+}
+
+function downloadLabel() {
+  showToast('ℹ️','Download','In the full React app, this exports the label as a PDF via html2canvas.','var(--amber)')
+}
+
+// ════════════════════════════════════════════════════════════
+//  COMPARE
+// ════════════════════════════════════════════════════════════
+function runCompare() {
+  const idA = document.getElementById('cmpA').value
+  const idB = document.getElementById('cmpB').value
+  const a = BATCHES[idA], b = BATCHES[idB]
+  if (!a || !b) return
+
+  const grid = document.getElementById('compareGrid')
+  grid.style.display = 'grid'
+
+  const fields = [
+    { label:'Drug',         va: a.drug_name,       vb: b.drug_name       },
+    { label:'Manufacturer', va: a.manufacturer,    vb: b.manufacturer    },
+    { label:'Quantity',     va: `${(a.quantity||0).toLocaleString()} units`, vb: `${(b.quantity||0).toLocaleString()} units` },
+    { label:'Manufacture',  va: a.manufacture_date, vb: b.manufacture_date },
+    { label:'Expiry',       va: a.expiry_date,      vb: b.expiry_date     },
+    { label:'Supply Hops',  va: a.hop_count,        vb: b.hop_count       },
+    { label:'Trust Score',  va: computeTrustScore(a), vb: computeTrustScore(b) },
+    { label:'Status',       va: a.is_flagged?'⚠ FLAGGED':'✓ CLEAN', vb: b.is_flagged?'⚠ FLAGGED':'✓ CLEAN' },
+  ]
+
+  const renderCard = (data, label) => {
+    const score = computeTrustScore(data)
+    const scoreColor = score >= 80 ? 'var(--mint)' : score >= 50 ? 'var(--amber)' : 'var(--red)'
+    return `
+      <div class="cmp-card">
+        <div class="cmp-header">
+          <div>
+            <div class="cmp-drug">${data.drug_name}</div>
+            <div class="cmp-batch">${data.batch_id} · ${label}</div>
+          </div>
+          <div style="font-family:var(--fd);font-size:20px;font-weight:800;color:${scoreColor}">${score}</div>
+        </div>
+        <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:14px">
+          <div style="height:100%;width:${score}%;background:${scoreColor};border-radius:2px;transition:width .8s"></div>
+        </div>
+        ${fields.map(f => {
+          const val = data === a ? f.va : f.vb
+          const other = data === a ? f.vb : f.va
+          const highlight = String(val) !== String(other)
+          return `<div class="cmp-row">
+            <span class="cmp-key">${f.label}</span>
+            <span class="cmp-val" style="${highlight?'color:var(--amber)':''}">${val}</span>
+          </div>`
+        }).join('')}
+        ${data.is_flagged ? `<div style="margin-top:10px;padding:10px;border-radius:8px;background:var(--red-dim);border:1px solid rgba(255,45,85,.3);font-size:10px;color:var(--red);font-family:var(--fd);font-weight:700">⚠ FLAGGED BATCH — DO NOT DISPENSE</div>` : ''}
+      </div>`
+  }
+
+  grid.innerHTML = renderCard(a, 'Batch A') + renderCard(b, 'Batch B')
+  showToast('⇌','Comparison Ready',`${idA} vs ${idB}`)
+}
+
+// ════════════════════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════════════════════
+let toastTimer
+function showToast(icon, title, msg, color = 'var(--mint)') {
+  clearTimeout(toastTimer)
+  const t = document.getElementById('toast')
+  document.getElementById('ti').textContent = icon
+  document.getElementById('tt').textContent = title
+  document.getElementById('tt').style.color = color
+  document.getElementById('tm').textContent = msg
+  t.style.borderColor = color
+  t.style.boxShadow = `0 8px 32px rgba(0,0,0,.5),0 0 14px ${color}44`
+  t.style.transform = 'translateY(0)'; t.style.opacity = '1'
+  toastTimer = setTimeout(() => { t.style.transform = 'translateY(70px)'; t.style.opacity = '0' }, 4000)
+}
+
+// Auto-load first batch
+loadBatch('B001')
+</script>
+</body>
+</html>

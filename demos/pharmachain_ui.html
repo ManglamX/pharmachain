@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PharmaChain — Drug Authentication Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════════ */
+:root {
+  --bg:        #03070F;
+  --bg2:       #060C18;
+  --surface:   #0A1120;
+  --card:      #0D1628;
+  --card2:     #111D33;
+  --border:    rgba(0,229,176,0.10);
+  --border2:   rgba(0,229,176,0.20);
+
+  --mint:      #00E5B0;
+  --mint-dim:  rgba(0,229,176,0.12);
+  --mint-glow: rgba(0,229,176,0.25);
+
+  --red:       #FF2D55;
+  --red-dim:   rgba(255,45,85,0.12);
+  --red-glow:  rgba(255,45,85,0.30);
+
+  --amber:     #FFB800;
+  --amber-dim: rgba(255,184,0,0.12);
+
+  --blue:      #3B82F6;
+  --blue-dim:  rgba(59,130,246,0.12);
+
+  --text:      #D4E8FF;
+  --text-mid:  #7A9EC0;
+  --text-dim:  #3A5570;
+
+  --font-display: 'Syne', sans-serif;
+  --font-mono:    'DM Mono', monospace;
+}
+
+/* ═══════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+  cursor: default;
+}
+
+/* Grain overlay */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 9999; opacity: 0.4;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ═══════════════════════════════════════════════
+   APP SHELL
+═══════════════════════════════════════════════ */
+.shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+}
+
+/* ═══════════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════════ */
+.sidebar {
+  grid-row: 1 / 3;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar-logo {
+  padding: 28px 24px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-icon {
+  width: 36px; height: 36px;
+  background: var(--mint);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 12px;
+  box-shadow: 0 0 20px var(--mint-glow);
+}
+.logo-icon svg { width: 20px; height: 20px; }
+.logo-name {
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.3px;
+}
+.logo-sub {
+  font-size: 10px; color: var(--text-dim);
+  letter-spacing: 1.5px; text-transform: uppercase;
+  margin-top: 1px;
+}
+
+/* Chain status widget */
+.chain-status-widget {
+  margin: 16px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border2);
+  background: var(--mint-dim);
+  transition: all 0.4s;
+}
+.chain-status-widget.invalid {
+  background: var(--red-dim);
+  border-color: rgba(255,45,85,0.3);
+}
+.csw-label {
+  font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--text-dim); margin-bottom: 6px;
+}
+.csw-status {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-display);
+  font-size: 13px; font-weight: 700;
+  color: var(--mint);
+  transition: color 0.4s;
+}
+.chain-status-widget.invalid .csw-status { color: var(--red); }
+.csw-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--mint);
+  box-shadow: 0 0 6px var(--mint);
+  animation: pulse-dot 2s infinite;
+  transition: background 0.4s, box-shadow 0.4s;
+  flex-shrink: 0;
+}
+.chain-status-widget.invalid .csw-dot {
+  background: var(--red); box-shadow: 0 0 6px var(--red);
+  animation: none;
+}
+@keyframes pulse-dot {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+.csw-blocks { font-size: 10px; color: var(--text-mid); margin-top: 4px; }
+
+/* Nav */
+.nav { padding: 8px 12px; flex: 1; }
+.nav-section-label {
+  font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--text-dim); padding: 10px 12px 6px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: var(--text-mid);
+  cursor: pointer;
+  font-size: 12px; font-weight: 500;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+  font-family: var(--font-mono);
+  background: none; text-align: left; width: 100%;
+}
+.nav-item:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+.nav-item.active {
+  color: var(--mint);
+  background: var(--mint-dim);
+  border-color: var(--border2);
+}
+.nav-item svg { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.7; }
+.nav-item.active svg { opacity: 1; }
+.nav-badge {
+  margin-left: auto;
+  background: var(--mint-dim); color: var(--mint);
+  font-size: 9px; font-weight: 700;
+  padding: 1px 6px; border-radius: 10px;
+  border: 1px solid var(--border2);
+}
+
+/* Sidebar bottom */
+.sidebar-bottom {
+  padding: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 10px; color: var(--text-dim);
+}
+.api-indicator {
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 4px;
+}
+.api-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--mint); }
+.api-offline { background: var(--red); }
+
+/* ═══════════════════════════════════════════════
+   TOPBAR
+═══════════════════════════════════════════════ */
+.topbar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.topbar-title {
+  font-family: var(--font-display);
+  font-size: 15px; font-weight: 700; color: #fff;
+}
+.topbar-breadcrumb {
+  font-size: 11px; color: var(--text-dim);
+  margin-top: 1px;
+}
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 16px;
+  border-radius: 8px; border: 1px solid;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.btn-ghost {
+  background: transparent;
+  border-color: var(--border2);
+  color: var(--text-mid);
+}
+.btn-ghost:hover { color: var(--text); border-color: rgba(0,229,176,0.3); background: var(--mint-dim); }
+.btn-primary {
+  background: var(--mint);
+  border-color: var(--mint);
+  color: #04080F;
+  font-weight: 700;
+  box-shadow: 0 0 16px var(--mint-glow);
+}
+.btn-primary:hover { box-shadow: 0 0 24px rgba(0,229,176,0.4); transform: translateY(-1px); }
+.btn-danger {
+  background: var(--red-dim);
+  border-color: rgba(255,45,85,0.3);
+  color: var(--red);
+}
+.btn-danger:hover { background: rgba(255,45,85,0.2); box-shadow: 0 0 12px var(--red-glow); }
+.btn svg { width: 13px; height: 13px; }
+
+/* ═══════════════════════════════════════════════
+   MAIN CONTENT
+═══════════════════════════════════════════════ */
+.main {
+  padding: 32px;
+  background: var(--bg);
+  overflow-y: auto;
+  min-height: calc(100vh - 56px);
+}
+
+/* Pages */
+.page { display: none; }
+.page.active { display: block; animation: fadeUp 0.3s ease; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════
+   STATS ROW
+═══════════════════════════════════════════════ */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.stat-card:hover { transform: translateY(-2px); border-color: var(--border2); }
+.stat-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.stat-card.mint::before  { background: var(--mint); box-shadow: 0 0 8px var(--mint-glow); }
+.stat-card.red::before   { background: var(--red);  box-shadow: 0 0 8px var(--red-glow);  }
+.stat-card.amber::before { background: var(--amber);}
+.stat-card.blue::before  { background: var(--blue); }
+.stat-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 12px;
+  font-size: 15px;
+}
+.stat-icon.mint  { background: var(--mint-dim);  }
+.stat-icon.red   { background: var(--red-dim);   }
+.stat-icon.amber { background: var(--amber-dim); }
+.stat-icon.blue  { background: var(--blue-dim);  }
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 28px; font-weight: 800; color: #fff;
+  line-height: 1;
+}
+.stat-label { font-size: 10px; color: var(--text-dim); margin-top: 4px; letter-spacing: 0.5px; text-transform: uppercase; }
+.stat-sub { font-size: 10px; color: var(--text-mid); margin-top: 6px; }
+
+/* ═══════════════════════════════════════════════
+   SECTION HEADER
+═══════════════════════════════════════════════ */
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.section-title {
+  font-family: var(--font-display);
+  font-size: 16px; font-weight: 700; color: #fff;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-title .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--mint); box-shadow: 0 0 6px var(--mint);
+}
+
+/* ═══════════════════════════════════════════════
+   CHAIN EXPLORER
+═══════════════════════════════════════════════ */
+.chain-explorer {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.chain-scroll {
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+.chain-track {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: max-content;
+  padding: 8px 0;
+}
+
+/* Individual block cards */
+.chain-block {
+  flex-shrink: 0;
+  width: 180px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.25s;
+  position: relative;
+}
+.chain-block:hover {
+  border-color: var(--border2);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.chain-block.selected {
+  border-color: var(--mint);
+  background: var(--mint-dim);
+  box-shadow: 0 0 20px var(--mint-glow);
+}
+.chain-block.tampered {
+  border-color: var(--red);
+  background: var(--red-dim);
+  animation: tamper-flash 0.5s ease;
+}
+.chain-block.tampered-downstream {
+  border-color: rgba(255,45,85,0.3);
+  opacity: 0.6;
+}
+@keyframes tamper-flash {
+  0%,100% { transform: translateY(0); }
+  25%      { transform: translateX(-3px) translateY(-2px); }
+  75%      { transform: translateX(3px) translateY(-2px); }
+}
+
+.cb-index {
+  font-size: 9px; color: var(--text-dim); letter-spacing: 1px;
+  text-transform: uppercase; margin-bottom: 6px;
+}
+.cb-event {
+  font-family: var(--font-display);
+  font-size: 11px; font-weight: 700; color: var(--mint);
+  margin-bottom: 8px; line-height: 1.2;
+}
+.chain-block.tampered .cb-event { color: var(--red); }
+.chain-block.tampered-downstream .cb-event { color: rgba(255,45,85,0.6); }
+.cb-batch {
+  font-size: 11px; color: var(--text);
+  margin-bottom: 6px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.cb-hash {
+  font-size: 9px; color: var(--text-dim);
+  font-family: var(--font-mono);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cb-hash-val { color: var(--text-mid); }
+.chain-block.tampered .cb-hash-val { color: var(--red); }
+
+/* Chain connector */
+.chain-connector {
+  flex-shrink: 0;
+  display: flex; align-items: center;
+  padding: 0 4px;
+  position: relative;
+}
+.chain-connector svg { width: 40px; height: 24px; }
+.connector-line { stroke: var(--border2); }
+.connector-arrow { fill: var(--border2); }
+.chain-connector.broken svg { filter: none; }
+.chain-connector.broken .connector-line { stroke: var(--red); stroke-dasharray: 4,3; }
+.chain-connector.broken .connector-arrow { fill: var(--red); }
+
+/* BREAK INDICATOR */
+.break-badge {
+  display: none;
+  position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+  background: var(--red); color: #fff;
+  font-size: 8px; font-weight: 700;
+  padding: 2px 6px; border-radius: 4px;
+  white-space: nowrap; letter-spacing: 1px;
+}
+.chain-connector.broken .break-badge { display: block; }
+
+/* ═══════════════════════════════════════════════
+   BLOCK DETAIL PANEL
+═══════════════════════════════════════════════ */
+.block-detail {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 24px;
+  display: none;
+}
+.block-detail.visible { display: block; animation: fadeUp 0.25s ease; }
+
+.block-detail-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.bd-title {
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 800; color: #fff;
+}
+.bd-subtitle { font-size: 11px; color: var(--text-mid); margin-top: 2px; }
+
+.bd-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.bd-field {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.bd-field-label {
+  font-size: 9px; color: var(--text-dim); letter-spacing: 1.5px;
+  text-transform: uppercase; margin-bottom: 4px;
+}
+.bd-field-value { font-size: 12px; color: var(--text); word-break: break-all; }
+.bd-field.hash-field .bd-field-value {
+  font-family: var(--font-mono);
+  font-size: 10px; color: var(--mint);
+  letter-spacing: 0.5px;
+}
+.bd-field.full { grid-column: 1 / -1; }
+
+/* ═══════════════════════════════════════════════
+   TAMPER SIMULATOR
+═══════════════════════════════════════════════ */
+.tamper-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.tamper-warning {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: var(--amber-dim);
+  border: 1px solid rgba(255,184,0,0.2);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+.tamper-warning svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+.tw-title { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--amber); }
+.tw-desc { font-size: 11px; color: var(--text-mid); margin-top: 2px; }
+
+.tamper-controls {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+.tc-col label {
+  font-size: 10px; color: var(--text-dim); letter-spacing: 1px;
+  text-transform: uppercase; display: block; margin-bottom: 6px;
+}
+.tc-select, .tc-input, .tc-textarea {
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.2s;
+  appearance: none;
+}
+.tc-select:focus, .tc-input:focus, .tc-textarea:focus {
+  border-color: var(--border2);
+}
+.tc-textarea { resize: vertical; min-height: 80px; }
+
+.tamper-result {
+  display: none;
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 10px;
+  background: var(--red-dim);
+  border: 1px solid rgba(255,45,85,0.3);
+  animation: fadeUp 0.3s ease;
+}
+.tamper-result.visible { display: block; }
+.tr-title {
+  font-family: var(--font-display); font-size: 14px; font-weight: 700;
+  color: var(--red); display: flex; align-items: center; gap: 8px;
+}
+.tr-body { font-size: 11px; color: var(--text-mid); margin-top: 6px; }
+.tr-code {
+  font-family: var(--font-mono); font-size: 10px;
+  background: rgba(0,0,0,0.3); padding: 8px 10px; border-radius: 6px;
+  margin-top: 8px; color: var(--red); word-break: break-all;
+}
+
+/* ═══════════════════════════════════════════════
+   VERIFY PAGE
+═══════════════════════════════════════════════ */
+.verify-result {
+  border-radius: 14px;
+  padding: 28px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+.verify-result.valid {
+  background: var(--mint-dim);
+  border: 1px solid var(--border2);
+}
+.verify-result.invalid {
+  background: var(--red-dim);
+  border: 1px solid rgba(255,45,85,0.3);
+}
+.vr-icon { font-size: 48px; margin-bottom: 12px; }
+.vr-title {
+  font-family: var(--font-display);
+  font-size: 24px; font-weight: 800;
+}
+.vr-title.valid { color: var(--mint); }
+.vr-title.invalid { color: var(--red); }
+.vr-sub { font-size: 12px; color: var(--text-mid); margin-top: 6px; }
+
+.verify-blocks-list { display: flex; flex-direction: column; gap: 8px; }
+.vbl-item {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 16px;
+  font-size: 11px;
+}
+.vbl-num {
+  width: 28px; height: 28px; border-radius: 6px;
+  background: var(--mint-dim); color: var(--mint);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 11px; font-weight: 700;
+  flex-shrink: 0;
+}
+.vbl-num.bad { background: var(--red-dim); color: var(--red); }
+.vbl-event { font-weight: 600; color: var(--text); }
+.vbl-hash { color: var(--text-dim); font-family: var(--font-mono); font-size: 10px; margin-left: auto; }
+.vbl-status { font-size: 10px; font-weight: 700; }
+.vbl-status.ok { color: var(--mint); }
+.vbl-status.err { color: var(--red); }
+
+/* ═══════════════════════════════════════════════
+   ADD BATCH FORM PAGE
+═══════════════════════════════════════════════ */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+.form-field.full { grid-column: 1 / -1; }
+.form-field label {
+  font-size: 10px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase;
+}
+.form-input, .form-select {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 11px 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  appearance: none;
+}
+.form-input:focus, .form-select:focus {
+  border-color: var(--mint);
+  box-shadow: 0 0 0 3px var(--mint-dim);
+}
+.form-input::placeholder { color: var(--text-dim); }
+
+.form-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 28px; margin-bottom: 24px;
+}
+.form-card-title {
+  font-family: var(--font-display);
+  font-size: 16px; font-weight: 700; color: #fff;
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* Success toast */
+.toast {
+  position: fixed; bottom: 28px; right: 28px;
+  background: var(--card); border: 1px solid var(--mint);
+  border-radius: 10px; padding: 14px 20px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12px; color: var(--text);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 16px var(--mint-glow);
+  transform: translateY(80px); opacity: 0;
+  transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  z-index: 1000;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast-icon { font-size: 16px; }
+.toast-title { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--mint); }
+.toast-msg { font-size: 11px; color: var(--text-mid); }
+
+/* ═══════════════════════════════════════════════
+   BATCH HISTORY (QR PAGE)
+═══════════════════════════════════════════════ */
+.batch-search {
+  display: flex; gap: 10px; margin-bottom: 24px;
+}
+.batch-search .form-input { flex: 1; }
+
+.provenance-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 24px; margin-bottom: 16px;
+  display: none;
+}
+.provenance-card.visible { display: block; animation: fadeUp 0.3s ease; }
+
+.prov-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.prov-drug {
+  font-family: var(--font-display); font-size: 20px; font-weight: 800; color: #fff;
+}
+.prov-batch { font-size: 11px; color: var(--mint); margin-top: 2px; }
+.prov-flagged {
+  background: var(--red-dim); border: 1px solid rgba(255,45,85,0.3);
+  color: var(--red); border-radius: 8px; padding: 6px 14px;
+  font-size: 11px; font-weight: 700; font-family: var(--font-display);
+  display: none;
+}
+.prov-flagged.show { display: block; }
+.prov-clean {
+  background: var(--mint-dim); border: 1px solid var(--border2);
+  color: var(--mint); border-radius: 8px; padding: 6px 14px;
+  font-size: 11px; font-weight: 700; font-family: var(--font-display);
+}
+
+/* Timeline */
+.timeline { position: relative; padding-left: 28px; }
+.timeline::before {
+  content: ''; position: absolute; left: 9px; top: 0; bottom: 0;
+  width: 2px; background: var(--border);
+}
+.tl-item {
+  position: relative; padding-bottom: 20px;
+}
+.tl-item:last-child { padding-bottom: 0; }
+.tl-dot {
+  position: absolute; left: -23px; top: 4px;
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--mint); background: var(--mint-dim);
+  box-shadow: 0 0 8px var(--mint-glow);
+}
+.tl-dot.flagged { border-color: var(--red); background: var(--red-dim); box-shadow: 0 0 8px var(--red-glow); }
+.tl-event {
+  font-family: var(--font-display); font-size: 12px; font-weight: 700;
+  color: var(--mint); margin-bottom: 2px;
+}
+.tl-event.flagged { color: var(--red); }
+.tl-actor { font-size: 12px; color: var(--text); }
+.tl-time { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+.tl-data {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px 10px; margin-top: 6px;
+  font-size: 10px; color: var(--text-mid);
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+}
+.tl-data-item span { color: var(--text-dim); }
+
+/* ═══════════════════════════════════════════════
+   QR CODE DISPLAY
+═══════════════════════════════════════════════ */
+.qr-display {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 28px;
+  display: flex; gap: 28px; align-items: flex-start;
+  display: none;
+}
+.qr-display.visible { display: flex; animation: fadeUp 0.3s ease; }
+.qr-box {
+  flex-shrink: 0; width: 140px; height: 140px;
+  background: #fff; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: #666; text-align: center;
+  padding: 8px;
+}
+.qr-info { flex: 1; }
+.qr-title { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+.qr-url {
+  font-family: var(--font-mono); font-size: 11px; color: var(--mint);
+  background: var(--mint-dim); border: 1px solid var(--border2);
+  padding: 6px 10px; border-radius: 6px; margin-bottom: 12px;
+  word-break: break-all;
+}
+.qr-desc { font-size: 11px; color: var(--text-mid); line-height: 1.6; }
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .shell { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .bd-grid { grid-template-columns: 1fr; }
+  .tamper-controls { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .form-field.full { grid-column: 1; }
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ═══════════════ SIDEBAR ═══════════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 20 20" fill="none">
+          <rect x="2" y="4" width="7" height="12" rx="1.5" fill="#04080F" stroke="#04080F" stroke-width="0"/>
+          <rect x="2" y="4" width="7" height="12" rx="1.5" fill="#04080F"/>
+          <path d="M5 7h1M5 10h1M5 13h1" stroke="#00E5B0" stroke-width="1.5" stroke-linecap="round"/>
+          <rect x="11" y="4" width="7" height="12" rx="1.5" fill="#04080F"/>
+          <path d="M14 7h1M14 10h1M14 13h1" stroke="#00E5B0" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M9 10h2" stroke="#00E5B0" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="logo-name">PharmaChain</div>
+      <div class="logo-sub">Drug Auth Terminal v1.0</div>
+    </div>
+
+    <div class="chain-status-widget" id="sidebarStatus">
+      <div class="csw-label">Chain Status</div>
+      <div class="csw-status">
+        <span class="csw-dot"></span>
+        <span id="statusText">VERIFIED</span>
+      </div>
+      <div class="csw-blocks" id="statusBlocks">Loading blocks…</div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-section-label">Navigation</div>
+      <button class="nav-item active" onclick="showPage('dashboard', this)">
+        <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" onclick="showPage('explorer', this)">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M1 8h2M5 8h2M9 8h2M13 8h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><rect x="2" y="4" width="4" height="8" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="10" y="4" width="4" height="8" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
+        Chain Explorer
+        <span class="nav-badge" id="navBlockCount">7</span>
+      </button>
+      <button class="nav-item" onclick="showPage('verify', this)">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M3 8l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/></svg>
+        Verify Chain
+      </button>
+      <div class="nav-section-label" style="margin-top:8px">Actions</div>
+      <button class="nav-item" onclick="showPage('add-batch', this)">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Add Drug Batch
+      </button>
+      <button class="nav-item" onclick="showPage('transfer', this)">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M2 5h12M10 2l4 3-4 3M14 11H2M6 8l-4 3 4 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Log Transfer
+      </button>
+      <div class="nav-section-label" style="margin-top:8px">Security</div>
+      <button class="nav-item" onclick="showPage('tamper', this)">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M8 2l1.5 3 3.5.5-2.5 2.5.5 3.5L8 10l-3 1.5.5-3.5L3 5.5 6.5 5 8 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        Tamper Lab
+      </button>
+      <button class="nav-item" onclick="showPage('provenance', this)">
+        <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        QR Verify
+      </button>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="api-indicator">
+        <span class="api-dot api-offline" id="apiDot"></span>
+        <span id="apiLabel">Demo Mode (no server)</span>
+      </div>
+      <div style="margin-top:4px">Flask API: localhost:5000</div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════ TOP BAR ═══════════════ -->
+  <header class="topbar">
+    <div>
+      <div class="topbar-title" id="pageTitle">Dashboard</div>
+      <div class="topbar-breadcrumb">PharmaChain / <span id="pageCrumb">Overview</span></div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost" onclick="resetChain()">
+        <svg viewBox="0 0 14 14" fill="none"><path d="M1 7A6 6 0 1 0 3 3.5M1 1v3h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Reset Demo
+      </button>
+      <button class="btn btn-primary" onclick="showPage('add-batch', document.querySelector('[onclick*=add-batch]'))">
+        <svg viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Add Batch
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══════════════ MAIN ═══════════════ -->
+  <main class="main">
+
+    <!-- ─── DASHBOARD ─── -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-row" id="statsRow">
+        <div class="stat-card mint">
+          <div class="stat-icon mint">⛓️</div>
+          <div class="stat-value" id="statBlocks">—</div>
+          <div class="stat-label">Total Blocks</div>
+          <div class="stat-sub">incl. genesis block</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-icon blue">💊</div>
+          <div class="stat-value" id="statBatches">—</div>
+          <div class="stat-label">Drug Batches</div>
+          <div class="stat-sub">registered on chain</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-icon amber">🚚</div>
+          <div class="stat-value" id="statTransfers">—</div>
+          <div class="stat-label">Transfers Logged</div>
+          <div class="stat-sub">supply chain hops</div>
+        </div>
+        <div class="stat-card" id="statValidCard">
+          <div class="stat-icon mint" id="statValidIcon">🛡️</div>
+          <div class="stat-value" id="statValid">—</div>
+          <div class="stat-label">Chain Integrity</div>
+          <div class="stat-sub" id="statValidSub">checking…</div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title"><span class="dot"></span> Live Chain</div>
+        <button class="btn btn-ghost" onclick="showPage('explorer', document.querySelector('[onclick*=explorer]'))">View all →</button>
+      </div>
+      <div class="chain-explorer">
+        <div class="chain-scroll"><div class="chain-track" id="chainTrackDashboard"></div></div>
+      </div>
+
+      <div class="block-detail" id="blockDetailDash">
+        <div class="block-detail-header">
+          <div>
+            <div class="bd-title" id="bdDashTitle">Block #0</div>
+            <div class="bd-subtitle" id="bdDashSub">—</div>
+          </div>
+          <button class="btn btn-ghost" onclick="document.getElementById('blockDetailDash').classList.remove('visible')">✕ Close</button>
+        </div>
+        <div class="bd-grid" id="bdDashGrid"></div>
+      </div>
+    </div>
+
+    <!-- ─── CHAIN EXPLORER ─── -->
+    <div class="page" id="page-explorer">
+      <div class="section-header">
+        <div class="section-title"><span class="dot"></span> Full Chain Explorer</div>
+        <span style="font-size:11px;color:var(--text-dim)">Click any block to inspect</span>
+      </div>
+      <div class="chain-explorer">
+        <div class="chain-scroll"><div class="chain-track" id="chainTrackExplorer"></div></div>
+      </div>
+      <div class="block-detail" id="blockDetailExplorer">
+        <div class="block-detail-header">
+          <div>
+            <div class="bd-title" id="bdExpTitle">Block #0</div>
+            <div class="bd-subtitle" id="bdExpSub">—</div>
+          </div>
+          <button class="btn btn-ghost" onclick="document.getElementById('blockDetailExplorer').classList.remove('visible')">✕ Close</button>
+        </div>
+        <div class="bd-grid" id="bdExpGrid"></div>
+      </div>
+
+      <div class="section-header" style="margin-top:28px">
+        <div class="section-title"><span class="dot"></span> All Blocks</div>
+      </div>
+      <div id="allBlocksList" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+
+    <!-- ─── VERIFY ─── -->
+    <div class="page" id="page-verify">
+      <div class="section-header">
+        <div class="section-title"><span class="dot"></span> Chain Integrity Verification</div>
+        <button class="btn btn-primary" onclick="runVerify()">
+          <svg viewBox="0 0 14 14" fill="none"><path d="M2 7l3 3 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Run Verification
+        </button>
+      </div>
+      <div id="verifyResult"></div>
+      <div class="section-header" style="margin-top:24px">
+        <div class="section-title"><span class="dot"></span> Block-by-Block Status</div>
+      </div>
+      <div class="verify-blocks-list" id="verifyList"></div>
+    </div>
+
+    <!-- ─── ADD BATCH ─── -->
+    <div class="page" id="page-add-batch">
+      <div class="form-card">
+        <div class="form-card-title">🏭 Register New Drug Batch</div>
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Batch ID *</label>
+            <input class="form-input" id="f_batch_id" placeholder="e.g. B010" />
+          </div>
+          <div class="form-field">
+            <label>Drug Name *</label>
+            <input class="form-input" id="f_drug_name" placeholder="e.g. Aspirin 75mg" />
+          </div>
+          <div class="form-field">
+            <label>Manufacturer *</label>
+            <input class="form-input" id="f_manufacturer" placeholder="e.g. Bayer India" />
+          </div>
+          <div class="form-field">
+            <label>Quantity (units) *</label>
+            <input class="form-input" type="number" id="f_quantity" placeholder="e.g. 5000" />
+          </div>
+          <div class="form-field">
+            <label>Manufacture Date *</label>
+            <input class="form-input" type="date" id="f_mfg_date" />
+          </div>
+          <div class="form-field">
+            <label>Expiry Date *</label>
+            <input class="form-input" type="date" id="f_exp_date" />
+          </div>
+          <div class="form-field full">
+            <label>Manufacturing Location</label>
+            <input class="form-input" id="f_location" placeholder="e.g. Mumbai, India" />
+          </div>
+        </div>
+        <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px">
+          <button class="btn btn-ghost" onclick="clearBatchForm()">Clear</button>
+          <button class="btn btn-primary" onclick="submitBatch()">
+            <svg viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Register on Blockchain
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── TRANSFER ─── -->
+    <div class="page" id="page-transfer">
+      <div class="form-card">
+        <div class="form-card-title">🚚 Log Ownership Transfer</div>
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Batch ID *</label>
+            <input class="form-input" id="t_batch_id" placeholder="e.g. B001" />
+          </div>
+          <div class="form-field">
+            <label>Drug Name *</label>
+            <input class="form-input" id="t_drug_name" placeholder="e.g. Paracetamol 500mg" />
+          </div>
+          <div class="form-field">
+            <label>From Actor *</label>
+            <input class="form-input" id="t_from_actor" placeholder="e.g. Sun Pharma Ltd." />
+          </div>
+          <div class="form-field">
+            <label>From Location *</label>
+            <input class="form-input" id="t_from_loc" placeholder="e.g. Mumbai" />
+          </div>
+          <div class="form-field">
+            <label>To Actor *</label>
+            <input class="form-input" id="t_to_actor" placeholder="e.g. MedDistrib Pvt. Ltd." />
+          </div>
+          <div class="form-field">
+            <label>To Location *</label>
+            <input class="form-input" id="t_to_loc" placeholder="e.g. Pune" />
+          </div>
+          <div class="form-field">
+            <label>Quantity *</label>
+            <input class="form-input" type="number" id="t_quantity" placeholder="e.g. 5000" />
+          </div>
+          <div class="form-field">
+            <label>Notes</label>
+            <input class="form-input" id="t_notes" placeholder="Optional notes" />
+          </div>
+        </div>
+        <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px">
+          <button class="btn btn-ghost" onclick="clearTransferForm()">Clear</button>
+          <button class="btn btn-primary" onclick="submitTransfer()">
+            <svg viewBox="0 0 14 14" fill="none"><path d="M2 5h10M8 2l4 3-4 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Log Transfer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── TAMPER LAB ─── -->
+    <div class="page" id="page-tamper">
+      <div class="tamper-panel">
+        <div class="tamper-warning">
+          <svg viewBox="0 0 18 18" fill="none"><path d="M9 2L1.5 15h15L9 2z" stroke="#FFB800" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 7v4M9 13v.5" stroke="#FFB800" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <div>
+            <div class="tw-title">Tamper Simulation Lab</div>
+            <div class="tw-desc">This is an educational demo. Modifying a block's data without updating its hash breaks the chain — immutability in action.</div>
+          </div>
+        </div>
+
+        <div class="tamper-controls">
+          <div class="tc-col">
+            <label>Select Block to Tamper</label>
+            <select class="tc-select" id="tamperBlockSelect">
+              <option value="">— Select a block —</option>
+            </select>
+          </div>
+          <div class="tc-col">
+            <label>Field to Modify</label>
+            <select class="tc-select" id="tamperFieldSelect">
+              <option value="quantity">quantity</option>
+              <option value="drug_name">drug_name</option>
+              <option value="manufacturer">manufacturer</option>
+              <option value="from_actor">from_actor</option>
+              <option value="to_actor">to_actor</option>
+            </select>
+          </div>
+          <div class="tc-col" style="grid-column:1/-1">
+            <label>New Value (fraudulent data)</label>
+            <input class="tc-input" id="tamperNewValue" placeholder="e.g. change quantity from 5000 to 50 to simulate diversion" />
+          </div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
+          <button class="btn btn-danger" onclick="executeTamper()">
+            <svg viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 3L12 4.5 9.5 7l.5 3.5L7 9 4 10.5l.5-3.5L2 4.5 5.5 4 7 1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+            Execute Tamper
+          </button>
+          <button class="btn btn-ghost" onclick="resetChain()">↺ Reset Chain</button>
+          <span id="tamperStatus" style="font-size:11px;color:var(--text-dim);margin-left:8px"></span>
+        </div>
+        <div class="tamper-result" id="tamperResult"></div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title"><span class="dot"></span> Chain State After Tamper</div>
+        <button class="btn btn-ghost" onclick="showPage('verify', document.querySelector('[onclick*=verify]'))">→ Run Full Verify</button>
+      </div>
+      <div class="chain-explorer">
+        <div class="chain-scroll"><div class="chain-track" id="chainTrackTamper"></div></div>
+      </div>
+    </div>
+
+    <!-- ─── PROVENANCE / QR ─── -->
+    <div class="page" id="page-provenance">
+      <div class="section-header">
+        <div class="section-title"><span class="dot"></span> Drug Batch Verification</div>
+      </div>
+      <div class="batch-search">
+        <input class="form-input" id="batchSearchInput" placeholder="Enter Batch ID (e.g. B001, B002, B003)…" />
+        <button class="btn btn-primary" onclick="searchBatch()">
+          <svg viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M10 10l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Verify
+        </button>
+      </div>
+
+      <div class="provenance-card" id="provenanceCard">
+        <div class="prov-header">
+          <div>
+            <div class="prov-drug" id="provDrug">—</div>
+            <div class="prov-batch" id="provBatch">—</div>
+          </div>
+          <div>
+            <div class="prov-flagged" id="provFlagged">⚠ FLAGGED</div>
+            <div class="prov-clean" id="provClean">✓ VERIFIED</div>
+          </div>
+        </div>
+        <div class="timeline" id="provTimeline"></div>
+      </div>
+
+      <div class="qr-display" id="qrDisplay">
+        <div class="qr-box" id="qrBox">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Simple QR-like pattern for demo -->
+            <rect width="100" height="100" fill="white"/>
+            <rect x="5" y="5" width="35" height="35" rx="3" fill="none" stroke="black" stroke-width="4"/>
+            <rect x="12" y="12" width="21" height="21" rx="1" fill="black"/>
+            <rect x="60" y="5" width="35" height="35" rx="3" fill="none" stroke="black" stroke-width="4"/>
+            <rect x="67" y="12" width="21" height="21" rx="1" fill="black"/>
+            <rect x="5" y="60" width="35" height="35" rx="3" fill="none" stroke="black" stroke-width="4"/>
+            <rect x="12" y="67" width="21" height="21" rx="1" fill="black"/>
+            <rect x="45" y="5" width="7" height="7" fill="black"/>
+            <rect x="45" y="15" width="7" height="7" fill="black"/>
+            <rect x="45" y="25" width="7" height="7" fill="black"/>
+            <rect x="55" y="45" width="7" height="7" fill="black"/>
+            <rect x="65" y="45" width="7" height="7" fill="black"/>
+            <rect x="45" y="55" width="7" height="7" fill="black"/>
+            <rect x="55" y="55" width="7" height="7" fill="black"/>
+            <rect x="75" y="55" width="7" height="7" fill="black"/>
+            <rect x="85" y="55" width="7" height="7" fill="black"/>
+            <rect x="45" y="65" width="7" height="7" fill="black"/>
+            <rect x="65" y="65" width="7" height="7" fill="black"/>
+            <rect x="55" y="75" width="7" height="7" fill="black"/>
+            <rect x="75" y="75" width="7" height="7" fill="black"/>
+            <rect x="45" y="85" width="7" height="7" fill="black"/>
+            <rect x="65" y="85" width="7" height="7" fill="black"/>
+            <rect x="85" y="85" width="7" height="7" fill="black"/>
+          </svg>
+        </div>
+        <div class="qr-info">
+          <div class="qr-title" id="qrTitle">Scan to Verify</div>
+          <div class="qr-url" id="qrUrl">http://localhost:5173/verify/—</div>
+          <div class="qr-desc">
+            In production, scanning this QR code would open the full provenance page for this drug batch. Patients and healthcare workers can instantly verify a medicine's full chain of custody before administering it.
+          </div>
+          <div style="margin-top:12px">
+            <button class="btn btn-ghost" onclick="alert('In the live app, this downloads the QR as a PNG to attach to the drug packaging.')">
+              ↓ Download QR
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon" id="toastIcon">✅</span>
+  <div>
+    <div class="toast-title" id="toastTitle">Success</div>
+    <div class="toast-msg" id="toastMsg">Action completed</div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  IN-MEMORY BLOCKCHAIN (mirrors backend logic in JS)
+//  This is demo mode — runs without the Flask server
+// ═══════════════════════════════════════════════════════════
+
+// Simple SHA-256 using Web Crypto API
+async function sha256(data) {
+  const encoded = new TextEncoder().encode(JSON.stringify(data, Object.keys(data).sort()));
+  const buf = await crypto.subtle.digest('SHA-256', encoded);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+let CHAIN = [];
+let tampered = new Set();
+
+async function computeHash(block) {
+  return sha256({
+    index: block.index,
+    timestamp: block.timestamp,
+    data: block.data,
+    previous_hash: block.previous_hash
+  });
+}
+
+async function createBlock(data, prevHash, index) {
+  const ts = new Date().toISOString();
+  const block = { index, timestamp: ts, data, previous_hash: prevHash, hash: '' };
+  block.hash = await computeHash(block);
+  return block;
+}
+
+async function initChain() {
+  CHAIN = [];
+  tampered.clear();
+
+  const genesis = await createBlock({ event:'GENESIS', description:'PharmaChain initialized', created_by:'System' }, '0', 0);
+  CHAIN.push(genesis);
+
+  const entries = [
+    { event:'BATCH_CREATED', batch_id:'B001', drug_name:'Paracetamol 500mg', manufacturer:'Sun Pharma Ltd.', quantity:10000, manufacture_date:'2025-01-10', expiry_date:'2027-01-09', location:'Mumbai, India' },
+    { event:'TRANSFERRED', batch_id:'B001', drug_name:'Paracetamol 500mg', from_actor:'Sun Pharma Ltd.', from_location:'Mumbai', to_actor:'MedDistrib Pvt. Ltd.', to_location:'Pune', quantity:10000, notes:'Cold-chain maintained' },
+    { event:'DISPENSED', batch_id:'B001', drug_name:'Paracetamol 500mg', pharmacy:'HealthPlus Pharmacy', patient_id:'PAT-001', quantity:30, prescription:'RX-2025-001' },
+    { event:'BATCH_CREATED', batch_id:'B002', drug_name:'Amoxicillin 250mg', manufacturer:'Cipla Ltd.', quantity:5000, manufacture_date:'2025-02-05', expiry_date:'2026-08-04', location:'Hyderabad, India' },
+    { event:'TRANSFERRED', batch_id:'B002', drug_name:'Amoxicillin 250mg', from_actor:'Cipla Ltd.', from_location:'Hyderabad', to_actor:'Apollo Distributors', to_location:'Chennai', quantity:5000, notes:'Standard shipment' },
+    { event:'BATCH_CREATED', batch_id:'B003', drug_name:'Metformin 1000mg', manufacturer:"Dr. Reddy's Labs", quantity:8000, manufacture_date:'2025-03-01', expiry_date:'2027-02-28', location:'Ahmedabad, India' },
+  ];
+
+  for (const data of entries) {
+    const prev = CHAIN[CHAIN.length - 1];
+    const b = await createBlock({ ...data, timestamp: new Date().toISOString() }, prev.hash, CHAIN.length);
+    CHAIN.push(b);
+    await sleep(5);
+  }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function validateChain() {
+  const errors = [], details = [];
+  for (let i = 1; i < CHAIN.length; i++) {
+    const cur = CHAIN[i], prev = CHAIN[i-1];
+    const recomputed = await computeHash(cur);
+    const selfOk  = recomputed === cur.hash;
+    const chainOk = cur.previous_hash === prev.hash;
+    details.push({ index: i, self_valid: selfOk, chain_valid: chainOk });
+    if (!selfOk)  errors.push(`Block #${i} data TAMPERED — stored hash mismatch`);
+    if (!chainOk) errors.push(`Block #${i} chain BROKEN — previous_hash doesn't match Block #${i-1}`);
+  }
+  return { is_valid: errors.length === 0, errors, details };
+}
+
+// ── EVENT LABELS ────────────────────────────────────────────
+function eventLabel(ev) {
+  const map = { GENESIS:'Genesis', BATCH_CREATED:'Batch Created', TRANSFERRED:'Transferred', DISPENSED:'Dispensed', FLAGGED:'Flagged ⚠' };
+  return map[ev] || ev;
+}
+function eventColor(ev) {
+  if (ev === 'FLAGGED')  return 'var(--red)';
+  if (ev === 'GENESIS')  return 'var(--text-mid)';
+  if (ev === 'DISPENSED')return 'var(--blue)';
+  return 'var(--mint)';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER CHAIN TRACK
+// ═══════════════════════════════════════════════════════════
+async function renderChainTrack(containerId, detailId, titleId, subId, gridId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+
+  const vResult = await validateChain();
+  const badBlocks = new Set(
+    vResult.details.filter(d => !d.self_valid || !d.chain_valid).map(d => d.index)
+  );
+  // Mark downstream blocks
+  let firstBad = null;
+  for (let i = 1; i < CHAIN.length; i++) {
+    if (badBlocks.has(i)) { firstBad = i; break; }
+  }
+
+  CHAIN.forEach((block, idx) => {
+    // Block card
+    const card = document.createElement('div');
+    card.className = 'chain-block';
+    if (tampered.has(idx)) card.classList.add('tampered');
+    else if (firstBad !== null && idx > firstBad) card.classList.add('tampered-downstream');
+
+    const ev = block.data.event || 'UNKNOWN';
+    const batchId = block.data.batch_id || '';
+    const hashShort = block.hash.substring(0,12) + '...';
+    const prevShort = block.previous_hash.substring(0,12) + '...';
+
+    card.innerHTML = `
+      <div class="cb-index">Block #${block.index}</div>
+      <div class="cb-event">${eventLabel(ev)}</div>
+      <div class="cb-batch">${batchId || block.data.drug_name || 'System'}</div>
+      <div class="cb-hash">hash: <span class="cb-hash-val">${hashShort}</span></div>
+      <div class="cb-hash">prev: <span class="cb-hash-val" style="color:var(--text-dim)">${prevShort}</span></div>
+    `;
+    card.onclick = () => showBlockDetail(block, detailId, titleId, subId, gridId);
+    container.appendChild(card);
+
+    // Connector (not after last block)
+    if (idx < CHAIN.length - 1) {
+      const conn = document.createElement('div');
+      conn.className = 'chain-connector';
+      const isBroken = firstBad !== null && idx >= firstBad - 1 && firstBad !== null
+                     && (badBlocks.has(idx+1) || (idx+1 > firstBad));
+      // Actually only mark broken on the connector right before the tampered block
+      const connBroken = badBlocks.has(idx+1);
+      if (connBroken) conn.classList.add('broken');
+      conn.innerHTML = `
+        <span class="break-badge">BROKEN</span>
+        <svg viewBox="0 0 40 24" fill="none">
+          <line x1="0" y1="12" x2="30" y2="12" class="connector-line" stroke-width="1.5"/>
+          <polygon points="28,7 38,12 28,17" class="connector-arrow"/>
+        </svg>`;
+      container.appendChild(conn);
+    }
+  });
+}
+
+function showBlockDetail(block, detailId, titleId, subId, gridId) {
+  document.getElementById(detailId).classList.add('visible');
+  document.getElementById(titleId).textContent = `Block #${block.index}`;
+  document.getElementById(subId).textContent = `${eventLabel(block.data.event||'?')} — ${new Date(block.timestamp).toLocaleString()}`;
+
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = '';
+
+  const fields = [
+    { label:'Hash', value: block.hash, full: true, mono: true, color: 'var(--mint)' },
+    { label:'Previous Hash', value: block.previous_hash, full: true, mono: true, color:'var(--text-mid)' },
+    { label:'Index',     value: block.index },
+    { label:'Timestamp', value: new Date(block.timestamp).toLocaleString() },
+    ...Object.entries(block.data).map(([k,v]) => ({ label: k, value: String(v) }))
+  ];
+
+  fields.forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'bd-field' + (f.full ? ' full' : '') + (f.mono ? ' hash-field' : '');
+    div.innerHTML = `<div class="bd-field-label">${f.label}</div><div class="bd-field-value" style="${f.color?`color:${f.color}`:'color:var(--text)'}">${f.value}</div>`;
+    grid.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  STATS & STATUS UPDATE
+// ═══════════════════════════════════════════════════════════
+async function updateStats() {
+  const vResult = await validateChain();
+  const events = CHAIN.map(b => b.data.event);
+  const batches = new Set(CHAIN.map(b => b.data.batch_id).filter(Boolean));
+
+  document.getElementById('statBlocks').textContent   = CHAIN.length;
+  document.getElementById('statBatches').textContent  = batches.size;
+  document.getElementById('statTransfers').textContent = events.filter(e => e==='TRANSFERRED').length;
+  document.getElementById('navBlockCount').textContent = CHAIN.length;
+
+  const card = document.getElementById('statValidCard');
+  const icon = document.getElementById('statValidIcon');
+  const val  = document.getElementById('statValid');
+  const sub  = document.getElementById('statValidSub');
+
+  if (vResult.is_valid) {
+    card.className = 'stat-card mint';
+    icon.className = 'stat-icon mint'; icon.textContent = '🛡️';
+    val.textContent = 'INTACT';
+    sub.textContent = 'all hashes verified';
+  } else {
+    card.className = 'stat-card red';
+    icon.className = 'stat-icon red'; icon.textContent = '⚠️';
+    val.textContent = 'BROKEN';
+    sub.textContent = `${vResult.errors.length} error(s) detected`;
+  }
+
+  const sw = document.getElementById('sidebarStatus');
+  const st = document.getElementById('statusText');
+  const sb = document.getElementById('statusBlocks');
+  if (vResult.is_valid) {
+    sw.className = 'chain-status-widget';
+    st.textContent = 'VERIFIED';
+  } else {
+    sw.className = 'chain-status-widget invalid';
+    st.textContent = 'COMPROMISED';
+  }
+  sb.textContent = `${CHAIN.length} blocks on chain`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  VERIFY PAGE
+// ═══════════════════════════════════════════════════════════
+async function runVerify() {
+  const result = await validateChain();
+  const div = document.getElementById('verifyResult');
+
+  if (result.is_valid) {
+    div.innerHTML = `
+      <div class="verify-result valid">
+        <div class="vr-icon">✅</div>
+        <div class="vr-title valid">Chain Integrity Verified</div>
+        <div class="vr-sub">All ${CHAIN.length} blocks passed hash verification. No tampering detected.</div>
+      </div>`;
+  } else {
+    div.innerHTML = `
+      <div class="verify-result invalid">
+        <div class="vr-icon">🔴</div>
+        <div class="vr-title invalid">Chain Integrity COMPROMISED</div>
+        <div class="vr-sub">${result.errors.length} error(s) detected across ${CHAIN.length} blocks.</div>
+        ${result.errors.map(e => `<div style="margin-top:8px;font-size:11px;color:var(--red);background:rgba(255,45,85,0.1);padding:8px 12px;border-radius:6px;text-align:left;">${e}</div>`).join('')}
+      </div>`;
+  }
+
+  const list = document.getElementById('verifyList');
+  list.innerHTML = '';
+  for (let i = 1; i < CHAIN.length; i++) {
+    const b = CHAIN[i];
+    const detail = result.details.find(d => d.index === i);
+    const ok = detail ? (detail.self_valid && detail.chain_valid) : true;
+    const item = document.createElement('div');
+    item.className = 'vbl-item';
+    item.innerHTML = `
+      <div class="vbl-num ${ok?'':'bad'}">${i}</div>
+      <div>
+        <div class="vbl-event">${eventLabel(b.data.event||'?')}</div>
+        <div style="font-size:10px;color:var(--text-dim)">${b.data.batch_id||'—'} · ${b.data.drug_name||b.data.description||'—'}</div>
+      </div>
+      <div class="vbl-hash">${b.hash.substring(0,16)}…</div>
+      <div class="vbl-status ${ok?'ok':'err'}">${ok ? '✓ VALID' : '✗ TAMPERED'}</div>`;
+    list.appendChild(item);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TAMPER SIMULATOR
+// ═══════════════════════════════════════════════════════════
+function populateTamperSelect() {
+  const sel = document.getElementById('tamperBlockSelect');
+  sel.innerHTML = '<option value="">— Select a block —</option>';
+  CHAIN.slice(1).forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.index;
+    opt.textContent = `Block #${b.index} — ${eventLabel(b.data.event||'?')} (${b.data.batch_id||'genesis'})`;
+    sel.appendChild(opt);
+  });
+}
+
+async function executeTamper() {
+  const idx = parseInt(document.getElementById('tamperBlockSelect').value);
+  const field = document.getElementById('tamperFieldSelect').value;
+  const val   = document.getElementById('tamperNewValue').value.trim();
+
+  if (isNaN(idx) || !val) {
+    showToast('⚠️','Missing Input','Select a block and enter a new value.','var(--amber)'); return;
+  }
+
+  const block = CHAIN[idx];
+  const oldVal = block.data[field] || '(not set)';
+
+  // TAMPER: change data WITHOUT recomputing hash — mismatch!
+  block.data = { ...block.data, [field]: isNaN(val) ? val : Number(val) };
+  // Deliberately do NOT update block.hash — this causes the mismatch
+  tampered.add(idx);
+
+  const result = document.getElementById('tamperResult');
+  result.className = 'tamper-result visible';
+  result.innerHTML = `
+    <div class="tr-title">⚠️ Block #${idx} Tampered — Chain Now Invalid</div>
+    <div class="tr-body">Changed <strong>${field}</strong> from <code>${oldVal}</code> → <code>${val}</code> without updating the hash. The hash fingerprint still reflects the old data — so validation will now catch this mismatch.</div>
+    <div class="tr-code">Stored hash: ${block.hash}<br>Actual hash of modified data: (different — will be detected)</div>`;
+
+  document.getElementById('tamperStatus').textContent = '⚠ Chain compromised';
+
+  await renderChainTrack('chainTrackTamper', 'blockDetailDash', 'bdDashTitle', 'bdDashSub', 'bdDashGrid');
+  await updateStats();
+  await renderChainTrack('chainTrackDashboard', 'blockDetailDash', 'bdDashTitle', 'bdDashSub', 'bdDashGrid');
+  await renderChainTrack('chainTrackExplorer', 'blockDetailExplorer', 'bdExpTitle', 'bdExpSub', 'bdExpGrid');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  FORMS
+// ═══════════════════════════════════════════════════════════
+async function submitBatch() {
+  const batchId  = document.getElementById('f_batch_id').value.trim();
+  const drugName = document.getElementById('f_drug_name').value.trim();
+  const mfg      = document.getElementById('f_manufacturer').value.trim();
+  const qty      = parseInt(document.getElementById('f_quantity').value);
+  const mfgDate  = document.getElementById('f_mfg_date').value;
+  const expDate  = document.getElementById('f_exp_date').value;
+  const loc      = document.getElementById('f_location').value.trim() || 'Unknown';
+
+  if (!batchId || !drugName || !mfg || !qty || !mfgDate || !expDate) {
+    showToast('⚠️','Missing Fields','Please fill in all required fields.','var(--amber)'); return;
+  }
+
+  const existing = new Set(CHAIN.map(b => b.data.batch_id).filter(Boolean));
+  if (existing.has(batchId)) {
+    showToast('❌','Duplicate Batch',`Batch ID "${batchId}" already exists on chain.`,'var(--red)'); return;
+  }
+
+  const data = { event:'BATCH_CREATED', batch_id:batchId, drug_name:drugName, manufacturer:mfg, quantity:qty, manufacture_date:mfgDate, expiry_date:expDate, location:loc };
+  const prev = CHAIN[CHAIN.length-1];
+  const block = await createBlock(data, prev.hash, CHAIN.length);
+  CHAIN.push(block);
+
+  showToast('✅','Batch Registered',`${drugName} (${batchId}) added to blockchain.`,'var(--mint)');
+  clearBatchForm();
+  await refreshAll();
+}
+
+async function submitTransfer() {
+  const fields = { batch_id:'t_batch_id', drug_name:'t_drug_name', from_actor:'t_from_actor', from_location:'t_from_loc', to_actor:'t_to_actor', to_location:'t_to_loc', quantity:'t_quantity' };
+  const data = { event:'TRANSFERRED' };
+  let missing = false;
+  for (const [key, id] of Object.entries(fields)) {
+    const v = document.getElementById(id).value.trim();
+    if (!v) { missing = true; break; }
+    data[key] = key === 'quantity' ? parseInt(v) : v;
+  }
+  data.notes = document.getElementById('t_notes').value.trim();
+
+  if (missing) { showToast('⚠️','Missing Fields','Please fill all required fields.','var(--amber)'); return; }
+
+  const prev = CHAIN[CHAIN.length-1];
+  const block = await createBlock(data, prev.hash, CHAIN.length);
+  CHAIN.push(block);
+
+  showToast('✅','Transfer Logged',`${data.drug_name} transferred to ${data.to_actor}.`,'var(--mint)');
+  clearTransferForm();
+  await refreshAll();
+}
+
+function clearBatchForm()    { ['f_batch_id','f_drug_name','f_manufacturer','f_quantity','f_mfg_date','f_exp_date','f_location'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; }); }
+function clearTransferForm() { ['t_batch_id','t_drug_name','t_from_actor','t_from_loc','t_to_actor','t_to_loc','t_quantity','t_notes'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; }); }
+
+// ═══════════════════════════════════════════════════════════
+//  PROVENANCE
+// ═══════════════════════════════════════════════════════════
+function searchBatch() {
+  const id = document.getElementById('batchSearchInput').value.trim().toUpperCase();
+  if (!id) return;
+
+  const blocks = CHAIN.filter(b => b.data.batch_id === id);
+  const card   = document.getElementById('provenanceCard');
+  const qrDisp = document.getElementById('qrDisplay');
+
+  if (!blocks.length) {
+    showToast('❌','Not Found',`No records for batch "${id}"`, 'var(--red)'); return;
+  }
+
+  card.classList.add('visible');
+  qrDisp.classList.add('visible');
+
+  const isFlagged = blocks.some(b => b.data.event === 'FLAGGED');
+  document.getElementById('provDrug').textContent   = blocks[0].data.drug_name || '—';
+  document.getElementById('provBatch').textContent  = `Batch ID: ${id}`;
+  document.getElementById('provFlagged').style.display = isFlagged ? 'block' : 'none';
+  document.getElementById('provClean').style.display   = isFlagged ? 'none' : 'block';
+
+  const tl = document.getElementById('provTimeline');
+  tl.innerHTML = '';
+  blocks.forEach(b => {
+    const ev = b.data.event || 'UNKNOWN';
+    const isBad = ev === 'FLAGGED';
+    const extras = Object.entries(b.data)
+      .filter(([k]) => !['event','batch_id','drug_name','timestamp'].includes(k))
+      .map(([k,v]) => `<div><span>${k}:</span> ${v}</div>`).join('');
+    tl.innerHTML += `
+      <div class="tl-item">
+        <div class="tl-dot ${isBad?'flagged':''}"></div>
+        <div class="tl-event ${isBad?'flagged':''}">${eventLabel(ev)}</div>
+        <div class="tl-actor">${b.data.manufacturer||b.data.from_actor||b.data.pharmacy||b.data.flagged_by||'System'}</div>
+        <div class="tl-time">${new Date(b.timestamp).toLocaleString()}</div>
+        ${extras?`<div class="tl-data">${extras}</div>`:''}
+      </div>`;
+  });
+
+  document.getElementById('qrTitle').textContent = `QR for Batch ${id}`;
+  document.getElementById('qrUrl').textContent   = `http://localhost:5173/verify/${id}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ALL BLOCKS LIST (Explorer)
+// ═══════════════════════════════════════════════════════════
+async function renderAllBlocksList() {
+  const list = document.getElementById('allBlocksList');
+  if (!list) return;
+  const vResult = await validateChain();
+  const badSet  = new Set(vResult.details.filter(d => !d.self_valid||!d.chain_valid).map(d=>d.index));
+  list.innerHTML = '';
+  [...CHAIN].reverse().forEach(b => {
+    const ok = !badSet.has(b.index);
+    const item = document.createElement('div');
+    item.style.cssText = 'background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;gap:16px;align-items:flex-start;cursor:pointer;transition:border-color 0.2s;';
+    item.onmouseenter = ()=>{ item.style.borderColor='var(--border2)'; };
+    item.onmouseleave = ()=>{ item.style.borderColor='var(--border)'; };
+    item.innerHTML = `
+      <div style="width:40px;height:40px;border-radius:8px;background:${ok?'var(--mint-dim)':'var(--red-dim)'};display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:13px;font-weight:700;color:${ok?'var(--mint)':'var(--red)'};flex-shrink:0">${b.index}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:#fff">${eventLabel(b.data.event||'?')}</div>
+        <div style="font-size:11px;color:var(--text-mid);margin-top:2px">${b.data.batch_id||'—'} · ${b.data.drug_name||b.data.description||'—'}</div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">hash: ${b.hash}</div>
+      </div>
+      <div style="font-size:10px;color:var(--text-dim);flex-shrink:0;text-align:right">${new Date(b.timestamp).toLocaleDateString()}<br><span style="color:${ok?'var(--mint)':'var(--red)'};font-weight:700">${ok?'✓ valid':'✗ tampered'}</span></div>`;
+    item.onclick = () => showBlockDetail(b, 'blockDetailExplorer', 'bdExpTitle', 'bdExpSub', 'bdExpGrid');
+    list.appendChild(item);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  REFRESH ALL
+// ═══════════════════════════════════════════════════════════
+async function refreshAll() {
+  await Promise.all([
+    renderChainTrack('chainTrackDashboard', 'blockDetailDash', 'bdDashTitle', 'bdDashSub', 'bdDashGrid'),
+    renderChainTrack('chainTrackExplorer', 'blockDetailExplorer', 'bdExpTitle', 'bdExpSub', 'bdExpGrid'),
+    renderChainTrack('chainTrackTamper', 'blockDetailDash', 'bdDashTitle', 'bdDashSub', 'bdDashGrid'),
+  ]);
+  await updateStats();
+  await renderAllBlocksList();
+  populateTamperSelect();
+}
+
+async function resetChain() {
+  await initChain();
+  document.getElementById('tamperResult').className = 'tamper-result';
+  document.getElementById('tamperStatus').textContent = '';
+  document.getElementById('verifyResult').innerHTML = '';
+  document.getElementById('verifyList').innerHTML = '';
+  await refreshAll();
+  showToast('↺','Chain Reset','Blockchain restored to clean demo state.','var(--mint)');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════════
+const pageMeta = {
+  'dashboard'  : { title:'Dashboard',            crumb:'Overview'          },
+  'explorer'   : { title:'Chain Explorer',       crumb:'Block Browser'     },
+  'verify'     : { title:'Verify Chain',         crumb:'Integrity Check'   },
+  'add-batch'  : { title:'Add Drug Batch',       crumb:'New Registration'  },
+  'transfer'   : { title:'Log Transfer',         crumb:'Ownership Transfer'},
+  'tamper'     : { title:'Tamper Lab',           crumb:'Security Demo'     },
+  'provenance' : { title:'QR Verify',            crumb:'Batch Provenance'  },
+};
+
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const page = document.getElementById('page-' + id);
+  if (page) page.classList.add('active');
+  if (btn)  btn.classList.add('active');
+  const meta = pageMeta[id] || { title: id, crumb: id };
+  document.getElementById('pageTitle').textContent  = meta.title;
+  document.getElementById('pageCrumb').textContent  = meta.crumb;
+
+  if (id === 'verify')  runVerify();
+  if (id === 'explorer') renderAllBlocksList();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════════
+let toastTimer;
+function showToast(icon, title, msg, color='var(--mint)') {
+  clearTimeout(toastTimer);
+  const t = document.getElementById('toast');
+  const ti = document.getElementById('toastIcon');
+  const tt = document.getElementById('toastTitle');
+  const tm = document.getElementById('toastMsg');
+  ti.textContent = icon;
+  tt.textContent = title; tt.style.color = color;
+  tm.textContent = msg;
+  t.style.borderColor = color;
+  t.style.boxShadow = `0 8px 32px rgba(0,0,0,.5), 0 0 16px ${color}44`;
+  t.classList.add('show');
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════════════════════
+(async () => {
+  await initChain();
+  await refreshAll();
+  await runVerify();
+})();
+</script>
+</body>
+</html>
