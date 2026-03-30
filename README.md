@@ -34,20 +34,41 @@ pharmacy, patient — with tamper detection built in.
 
 ## Run the Full Stack
 
-### Backend (Flask API)
+### Live Demo (Deployed)
+- **Frontend:** https://pharmachain-og.netlify.app
+- **Backend API:** https://pharmachain-9ale.onrender.com
+
+### Local Development
+
+#### Backend (Flask API)
 ```bash
-pip install flask flask-cors qrcode[pil] pillow
-cd pharmachain/backend
+pip install -r requirements.txt
+cd backend
 python app.py
 # → http://localhost:5000
 ```
 
-### Frontend (React)
+#### Frontend (React)
 ```bash
-cd pharmachain/frontend
+cd frontend
 npm install
 npm run dev
 # → http://localhost:5173
+```
+
+### Deploy Your Own
+
+#### Backend → Render.com
+1. Push code to GitHub
+2. Connect repo at [render.com](https://render.com)
+3. Uses `render.yaml` auto-config
+4. Set `FRONTEND_URL` env var to your Netlify URL
+
+#### Frontend → Netlify
+```bash
+cd frontend
+npm run build
+npx netlify deploy --prod --dir=dist
 ```
 
 ### Run Tests
@@ -64,11 +85,14 @@ pharmachain/
 ├── backend/
 │   ├── blockchain.py       ← Block + Blockchain classes, SHA-256
 │   ├── drug_models.py      ← Standardized event data shapes
-│   └── app.py              ← Flask REST API, 12 endpoints
+│   ├── app.py              ← Flask REST API, 12 endpoints
+│   ├── requirements.txt    ← Python dependencies
+│   └── Procfile            ← Render deployment config
 ├── frontend/
 │   ├── index.html
 │   ├── package.json
 │   ├── vite.config.js
+│   ├── netlify.toml        ← Netlify config
 │   └── src/
 │       ├── main.jsx        ← Entry point
 │       ├── App.jsx         ← Shell + routing + sidebar
@@ -76,10 +100,14 @@ pharmachain/
 │       ├── api.js          ← All Axios calls to Flask
 │       ├── components.jsx  ← StatCard, ChainTrack, BlockDetail, forms
 │       ├── pages.jsx       ← All 9 pages in one file
-│       └── pages/          ← Individual re-exports
-└── tests/
-    ├── test_blockchain.py
-    └── test_api.py
+│       ├── ShapeGrid.jsx   ← Animated background component
+│       └── ShapeGrid.css   ← Background styles
+├── tests/
+│   ├── test_blockchain.py
+│   └── test_api.py
+├── render.yaml             ← Render.com web service config
+├── vercel.json             ← Vercel deployment config
+└── README.md
 ```
 
 ---
