@@ -8,5 +8,7 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.11"
+      - key: FRONTEND_URL
+        value: "https://pharmachain-og.netlify.app"
     healthCheckPath: /api/stats
     autoDeploy: true

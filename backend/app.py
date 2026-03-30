@@ -35,6 +35,7 @@
 import io
 import json
 import base64
+import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -435,7 +436,8 @@ def get_qr_code(batch_id):
         import qrcode
 
         # The URL a patient would scan to see provenance
-        verify_url = f"http://localhost:5173/verify/{batch_id}"
+        # Use environment variable or default to localhost for development
+        verify_url = f"{os.environ.get('FRONTEND_URL', 'http://localhost:5173')}/verify/{batch_id}"
 
         qr = qrcode.QRCode(
             version       = 1,
@@ -464,7 +466,7 @@ def get_qr_code(batch_id):
         return success({
             "batch_id"  : batch_id,
             "qr_base64" : None,
-            "verify_url": f"http://localhost:5173/verify/{batch_id}",
+            "verify_url": f"{os.environ.get('FRONTEND_URL', 'http://localhost:5173')}/verify/{batch_id}",
             "note"      : "Install 'qrcode[pil]' package to generate actual QR images",
         })
 
