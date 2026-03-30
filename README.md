@@ -1,4 +1,4 @@
-# PharmaChain — Complete Project
+# PharmaChain
 
 ## What Was Built
 A blockchain-based pharmaceutical drug authentication system that eliminates
