@@ -9,7 +9,7 @@
 import axios from 'axios'
 
 // Use environment variable in production, fallback to relative path
-const API_URL = import.meta.env.VITE_API_URL || ''
+const API_URL = 'https://pharmachain-9ale.onrender.com'  // Your Render URL
 const BASE = `${API_URL}/api`
 
 // Create axios instance with default config
