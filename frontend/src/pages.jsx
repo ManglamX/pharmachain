@@ -1700,10 +1700,57 @@ export function Provenance() {
                 {verifyUrl}
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                <Btn onClick={() => toast('↓','Download QR','Saves the QR as a PNG for drug packaging.')} style={{ width:'100%', justifyContent:'center' }}>
+                <Btn onClick={() => {
+                  if (qrData?.qr_base64) {
+                    const link = document.createElement('a')
+                    link.href = `data:image/png;base64,${qrData.qr_base64}`
+                    link.download = `pharmachain-${batchData.batch_id}-qr.png`
+                    link.click()
+                    toast('↓','Downloaded',`QR code saved as pharmachain-${batchData.batch_id}-qr.png`)
+                  } else {
+                    toast('⚠️','No QR','QR code not available.')
+                  }
+                }} style={{ width:'100%', justifyContent:'center' }}>
                   ↓ Download QR Code
                 </Btn>
-                <Btn onClick={() => toast('🖨️','Print Label','Opens printable label in a new tab.')} style={{ width:'100%', justifyContent:'center', background:'rgba(168,85,247,.1)', borderColor:'rgba(168,85,247,.3)', color:'#a78bfa' }}>
+                <Btn onClick={() => {
+                  if (qrData?.qr_base64 && batchData) {
+                    const printWindow = window.open('', '_blank')
+                    printWindow.document.write(`
+                      <html>
+                        <head>
+                          <title>Drug Label - ${batchData.batch_id}</title>
+                          <style>
+                            body { font-family: Arial, sans-serif; padding: 20px; max-width: 400px; margin: 0 auto; }
+                            .label { border: 2px solid #333; padding: 20px; border-radius: 8px; }
+                            .qr { width: 150px; height: 150px; margin: 10px auto; display: block; }
+                            .drug-name { font-size: 18px; font-weight: bold; margin: 10px 0; }
+                            .batch-id { font-size: 14px; color: #666; margin-bottom: 10px; }
+                            .manufacturer { font-size: 12px; color: #999; }
+                            .verify { font-size: 11px; color: #00E5B0; margin-top: 15px; word-break: break-all; }
+                            @media print { body { padding: 0; } .no-print { display: none; } }
+                          </style>
+                        </head>
+                        <body>
+                          <div class="label">
+                            <div class="drug-name">${batchData.drug_name}</div>
+                            <div class="batch-id">Batch: ${batchData.batch_id}</div>
+                            <img class="qr" src="data:image/png;base64,${qrData.qr_base64}" alt="QR Code" />
+                            <div class="manufacturer">${batchData.history?.[0]?.data?.manufacturer || 'Unknown'}</div>
+                            <div class="verify">Verify at: ${qrData.verify_url}</div>
+                          </div>
+                          <div class="no-print" style="margin-top: 20px; text-align: center;">
+                            <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Print Label</button>
+                          </div>
+                        </body>
+                      </html>
+                    `)
+                    printWindow.document.close()
+                    toast('🖨️','Print Label','Label opened in new tab. Click Print to print.')
+                  } else {
+                    toast('⚠️','No Data','QR code or batch data not available.')
+                  }
+                }} style={{ width:'100%', justifyContent:'center', background:'rgba(168,85,247,.1)', borderColor:'rgba(168,85,247,.3)', color:'#a78bfa' }}>
                   🏷️ Generate Print Label
                 </Btn>
               </div>

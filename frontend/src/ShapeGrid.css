@@ -1,0 +1,24 @@
+.shapegrid-canvas {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+  pointer-events: none;
+}
+
+.shapegrid-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Ensure app content stays above the background and receives events */
+.app-content {
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+}

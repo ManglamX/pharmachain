@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Routes, Route, NavLink, useNavigate } from 'react-router-dom'
 import { checkHealth, getStats, getVerify, resetChain } from './api'
+import ShapeGrid from './ShapeGrid'
 
 // Pages (all in pages.jsx)
 import { Dashboard, Explorer, Verify, AddBatch, Transfer, TamperLab, Provenance, Dispense, FlagBatch } from './pages'
@@ -12,7 +13,9 @@ const S = {
     gridTemplateColumns: '240px 1fr',
     gridTemplateRows: 'auto 1fr',
     minHeight: '100vh',
-    background: 'var(--bg)',
+    background: 'transparent',
+    position: 'relative',
+    zIndex: 1,
   },
   sidebar: {
     gridRow: '1 / 3',
@@ -192,6 +195,19 @@ export default function App() {
   return (
     <div style={S.shell}>
 
+      {/* Background ShapeGrid */}
+      <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'none' }}>
+        <ShapeGrid
+          speed={0.3}
+          squareSize={50}
+          direction="diagonal"
+          borderColor="rgba(0, 229, 176, 0.08)"
+          hoverFillColor="rgba(0, 229, 176, 0.15)"
+          shape="square"
+          hoverTrailAmount={3}
+        />
+      </div>
+
       {/* ── SIDEBAR ── */}
       <aside style={S.sidebar}>
         <div style={S.logoArea}>
@@ -235,13 +251,6 @@ export default function App() {
           <NavItem to="/provenance" icon="◎" label="QR Verify"      />
         </nav>
 
-        <div style={{ padding: 16, borderTop: '1px solid var(--border)', fontSize: 10, color: 'var(--text-dim)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
-            <span style={S.apiDot(online)}></span>
-            {online ? 'Flask API connected' : 'Demo mode (no server)'}
-          </div>
-          <div>localhost:5000</div>
-        </div>
       </aside>
 
       {/* ── TOPBAR ── */}
